@@ -181,7 +181,7 @@ struct ContentView: View {
     @State private var showDocumentPicker = false
     @State private var selectedFileURL: URL?
     @State private var showSettings = false
-    @State private var showAllLogs = false
+    @State private var showAllLogs = false\n    @State private var fileToDelete: FileInfo?\n    @State private var showDeleteAlert = false
     
     var body: some View {
         NavigationView {
@@ -269,12 +269,24 @@ struct ContentView: View {
                                         .foregroundColor(.secondary)
                                 }
                                 Spacer()
-                                Button("导出") {
-                                    selectedFileURL = file.url
-                                    showDocumentPicker = true
+                                HStack(spacing: 8) {
+                                    Button("导出") {
+                                        selectedFileURL = file.url
+                                        showDocumentPicker = true
+                                    }
+                                    .buttonStyle(.bordered)
+                                    .font(.caption)
+                                    
+                                    Button {
+                                        fileToDelete = file
+                                        showDeleteAlert = true
+                                    } label: {
+                                        Image(systemName: "trash")
+                                            .foregroundColor(.red)
+                                            .font(.caption)
+                                    }
+                                    .buttonStyle(.borderless)
                                 }
-                                .buttonStyle(.bordered)
-                                .font(.caption)
                             }
                             .padding(.vertical, 2)
                         }
@@ -375,6 +387,23 @@ struct ContentView: View {
             .sheet(isPresented: $showSettings) {
                 NavigationView {
                     SettingsView()
+                }
+            }
+            .alert("确认删除", isPresented: $showDeleteAlert) {
+                Button("取消", role: .cancel) {
+                    fileToDelete = nil
+                }
+                Button("删除", role: .destructive) {
+                    if let file = fileToDelete {
+                        manager.deleteFile(file)
+                        fileToDelete = nil
+                    }
+                }
+            } message: {
+                if let file = fileToDelete {
+                    Text("确定要删除文件 \"\(file.name)\" 吗？此操作不可撤销。")
+                } else {
+                    Text("确定要删除此文件吗？")
                 }
             }
         }
