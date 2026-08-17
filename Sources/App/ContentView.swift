@@ -181,7 +181,11 @@ struct ContentView: View {
     @State private var showDocumentPicker = false
     @State private var selectedFileURL: URL?
     @State private var showSettings = false
-    @State private var showAllLogs = false\n    @State private var fileToDelete: FileInfo?\n    @State private var showDeleteAlert = false
+    @State private var showAllLogs = false
+    
+    // ✅ 修复：以下三个状态变量分别独立一行
+    @State private var fileToDelete: FileInfo?
+    @State private var showDeleteAlert = false
     
     var body: some View {
         NavigationView {
@@ -251,7 +255,7 @@ struct ContentView: View {
                     }
                 }
                 
-                // 文件列表
+                // 文件列表（含删除按钮）
                 Section {
                     if manager.files.isEmpty {
                         Text("暂无文件")
@@ -356,6 +360,7 @@ struct ContentView: View {
                         Text("2. 在其他设备的浏览器输入上方显示的地址（例如 192.168.0.100:8080）")
                         Text("3. 网页内可上传文件到手机，或点击下载手机里的文件")
                         Text("4. 手机内文件可通过本页面的「导出」按钮保存到其他位置")
+                        Text("5. 点击垃圾桶图标可删除文件")
                     }
                     .font(.footnote)
                     .foregroundColor(.secondary)
