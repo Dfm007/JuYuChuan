@@ -25,7 +25,7 @@ targets:
     dependencies:
       - package: Swifter
     settings:
-      PRODUCT_BUNDLE_IDENTIFIER: com.example.wangchuan
+      PRODUCT_BUNDLE_IDENTIFIER: com.example.juyuchuan
       INFOPLIST_KEY_UIBackgroundModes: ["audio"]
     entitlements:
       path: Sources/App.entitlements
