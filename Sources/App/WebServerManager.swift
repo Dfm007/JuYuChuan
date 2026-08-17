@@ -50,38 +50,51 @@ final class WebServerManager: ObservableObject {
         let docs = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first!
         self.storagePath = docs
 
-        // 尝试从 UserDefaults 恢复书签
-        if let bookmarkData = defaults.data(forKey: "storageBookmarkData") {
-            var isStale = false
-            do {
-                let url = try URL(resolvingBookmarkData: bookmarkData,
-                                  options: [],
-                                  relativeTo: nil,
-                                  bookmarkDataIsStale: &isStale)
-                if !isStale {
-                    if url.startAccessingSecurityScopedResource() {
-                        var isDir: ObjCBool = false
-                        if fileManager.fileExists(atPath: url.path, isDirectory: &isDir), isDir.boolValue {
-                            self.storagePath = url
-                            self.isUsingCustomPath = true
-                        } else {
-                            url.stopAccessingSecurityScopedResource()
-                            defaults.removeObject(forKey: "storageBookmarkData")
-                        }
-                    } else {
-                        defaults.removeObject(forKey: "storageBookmarkData")
-                    }
-                } else {
-                    defaults.removeObject(forKey: "storageBookmarkData")
-                }
-            } catch {
-                defaults.removeObject(forKey: "storageBookmarkData")
-            }
-        }
+        restoreCustomStorageIfNeeded()
 
         self.currentIP = Self.getIPAddress()
         setupRoutes()
         updateFileList()
+    }
+
+    private func restoreCustomStorageIfNeeded() {
+        guard let bookmarkData = defaults.data(forKey: "storageBookmarkData") else { return }
+
+        var isStale = false
+        do {
+            let url = try URL(resolvingBookmarkData: bookmarkData,
+                              options: [],
+                              relativeTo: nil,
+                              bookmarkDataIsStale: &isStale)
+
+            guard url.startAccessingSecurityScopedResource() else {
+                defaults.removeObject(forKey: "storageBookmarkData")
+                return
+            }
+
+            var isDir: ObjCBool = false
+            guard fileManager.fileExists(atPath: url.path, isDirectory: &isDir), isDir.boolValue else {
+                url.stopAccessingSecurityScopedResource()
+                defaults.removeObject(forKey: "storageBookmarkData")
+                return
+            }
+
+            self.storagePath = url
+            self.isUsingCustomPath = true
+
+            if isStale {
+                do {
+                    let fresh = try url.bookmarkData(options: [.withSecurityScope, .minimalBookmark],
+                                                    includingResourceValuesForKeys: nil,
+                                                    relativeTo: nil)
+                    defaults.set(fresh, forKey: "storageBookmarkData")
+                } catch {
+                    log("⚠️ 书签过期，重新保存失败: (error.localizedDescription)")
+                }
+            }
+        } catch {
+            defaults.removeObject(forKey: "storageBookmarkData")
+        }
     }
 
     // MARK: - 带时间戳的日志
@@ -218,7 +231,7 @@ final class WebServerManager: ObservableObject {
     private func saveBookmark() {
         if isUsingCustomPath {
             do {
-                let bookmarkData = try storagePath.bookmarkData(options: .minimalBookmark,
+                let bookmarkData = try storagePath.bookmarkData(options: [.withSecurityScope, .minimalBookmark],
                                                                includingResourceValuesForKeys: nil,
                                                                relativeTo: nil)
                 defaults.set(bookmarkData, forKey: "storageBookmarkData")
@@ -256,7 +269,7 @@ final class WebServerManager: ObservableObject {
 
         // 保存书签
         do {
-            let bookmarkData = try url.bookmarkData(options: .minimalBookmark,
+            let bookmarkData = try url.bookmarkData(options: [.withSecurityScope, .minimalBookmark],
                                                    includingResourceValuesForKeys: nil,
                                                    relativeTo: nil)
             defaults.set(bookmarkData, forKey: "storageBookmarkData")
