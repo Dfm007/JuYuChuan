@@ -1,0 +1,11 @@
+﻿# Xcode 生成的文件（我们不需要上传，因为 Actions 会重新生成）
+*.xcodeproj
+*.xcworkspace
+DerivedData/
+build/
+
+# macOS 系统文件
+.DS_Store
+
+# Swift Package Manager 缓存（如果有）
+.swiftpm/

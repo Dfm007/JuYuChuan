@@ -1,0 +1,54 @@
+﻿name: 编译未签名 IPA
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-15
+    steps:
+      - name: 拉取代码
+        uses: actions/checkout@v4
+
+      - name: 安装 XcodeGen
+        run: brew install xcodegen
+
+      - name: 生成 Xcode 项目
+        run: xcodegen generate
+
+      - name: 解析 Swift 包依赖
+        run: xcodebuild -project 局域传.xcodeproj -scheme 局域传 -destination 'generic/platform=iOS' -resolvePackageDependencies
+
+      - name: 编译 App (强制关闭签名)
+        run: |
+          xcodebuild -project 局域传.xcodeproj \
+                     -scheme 局域传 \
+                     -configuration Release \
+                     -derivedDataPath build \
+                     -destination 'generic/platform=iOS' \
+                     CODE_SIGN_IDENTITY="" \
+                     CODE_SIGNING_REQUIRED=NO \
+                     CODE_SIGNING_ALLOWED=NO \
+                     AD_HOC_CODE_SIGNING_ALLOWED=YES \
+                     DEVELOPMENT_TEAM="" \
+                     PROVISIONING_PROFILE_SPECIFIER=""
+
+      - name: 打包为未签名的 IPA
+        run: |
+          APP_PATH=
+          if [ -z "" ]; then
+            echo "::error::未找到 .app 文件，编译失败！"
+            exit 1
+          fi
+          echo "找到 App: "
+          mkdir Payload
+          cp -R "" Payload/
+          zip -r 局域传.ipa Payload/
+
+      - name: 上传构建产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: 局域传-未签名包
+          path: 局域传.ipa
