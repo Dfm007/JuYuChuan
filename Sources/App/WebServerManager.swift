@@ -8,7 +8,7 @@ struct FileInfo: Identifiable {
     let name: String
     let size: Int64
     let url: URL
-    
+
     var sizeString: String {
         let formatter = ByteCountFormatter()
         formatter.countStyle = .file
@@ -18,7 +18,7 @@ struct FileInfo: Identifiable {
 
 final class WebServerManager: ObservableObject {
     static let shared = WebServerManager()
-    
+
     private let server = HttpServer()
     private let fileManager = FileManager.default
     private let defaults = UserDefaults.standard
@@ -27,29 +27,30 @@ final class WebServerManager: ObservableObject {
         formatter.dateFormat = "HH:mm:ss"
         return formatter
     }()
-    
+
     // MARK: - 音频保活相关
     private var audioPlayer: AVAudioPlayer?
     private let audioSession = AVAudioSession.sharedInstance()
-    
+
     @Published var storagePath: URL {
         didSet {
             saveBookmark()
             updateFileList()
         }
     }
-    
+
     @Published var isRunning = false
     @Published var logMessages: [String] = []
     @Published var currentIP: String = "获取中..."
     @Published var currentPort: UInt16 = 8080
     @Published var files: [FileInfo] = []
     @Published var isUsingCustomPath = false
-    
+
     private init() {
         let docs = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first!
         self.storagePath = docs
-        
+
+        // 尝试从 UserDefaults 恢复书签
         if let bookmarkData = defaults.data(forKey: "storageBookmarkData") {
             var isStale = false
             do {
@@ -77,12 +78,12 @@ final class WebServerManager: ObservableObject {
                 defaults.removeObject(forKey: "storageBookmarkData")
             }
         }
-        
+
         self.currentIP = Self.getIPAddress()
         setupRoutes()
         updateFileList()
     }
-    
+
     // MARK: - 带时间戳的日志
     private func log(_ message: String) {
         let timestamp = dateFormatter.string(from: Date())
@@ -90,7 +91,7 @@ final class WebServerManager: ObservableObject {
             self.logMessages.append("[\(timestamp)] \(message)")
         }
     }
-    
+
     // MARK: - 生成 WAV 静音数据
     private func generateSilentWAV(duration: TimeInterval = 0.5) -> Data? {
         let sampleRate: Double = 44100.0
@@ -100,7 +101,7 @@ final class WebServerManager: ObservableObject {
         let blockAlign = numChannels * bitsPerSample / 8
         let numSamples = Int(sampleRate * duration)
         let dataSize = numSamples * Int(blockAlign)
-        
+
         var header = Data()
         header.append(contentsOf: [0x52, 0x49, 0x46, 0x46])
         let chunkSize = UInt32(36 + dataSize)
@@ -121,39 +122,39 @@ final class WebServerManager: ObservableObject {
         header.append(contentsOf: [0x64, 0x61, 0x74, 0x61])
         let subchunk2Size = UInt32(dataSize)
         header.append(contentsOf: withUnsafeBytes(of: subchunk2Size.littleEndian) { Data($0) })
-        
+
         let silenceData = Data(repeating: 0, count: dataSize)
         var wavData = Data()
         wavData.append(header)
         wavData.append(silenceData)
         return wavData
     }
-    
+
     // MARK: - 音频保活控制
     private func startAudioKeepAlive() {
         stopAudioKeepAlive()
-        
+
         do {
             try audioSession.setCategory(.playback, mode: .default, options: [.mixWithOthers])
             try audioSession.setActive(true)
-            
+
             guard let wavData = generateSilentWAV(duration: 0.5) else {
                 log("⚠️ 生成静音数据失败")
                 return
             }
-            
+
             audioPlayer = try AVAudioPlayer(data: wavData)
             audioPlayer?.numberOfLoops = -1
             audioPlayer?.volume = 0.0
             audioPlayer?.prepareToPlay()
             audioPlayer?.play()
-            
+
             log("🎵 后台音频保活已启动")
         } catch {
             log("⚠️ 音频保活启动失败: \(error.localizedDescription)")
         }
     }
-    
+
     private func stopAudioKeepAlive() {
         audioPlayer?.stop()
         audioPlayer = nil
@@ -163,13 +164,13 @@ final class WebServerManager: ObservableObject {
             // 静默忽略
         }
     }
-    
+
     static func getIPAddress() -> String {
         var address: String?
         var ifaddr: UnsafeMutablePointer<ifaddrs>?
         guard getifaddrs(&ifaddr) == 0, let firstAddr = ifaddr else { return "未连接WiFi" }
         defer { freeifaddrs(ifaddr) }
-        
+
         for ptr in sequence(first: firstAddr, next: { $0.pointee.ifa_next }) {
             let interface = ptr.pointee
             let addrFamily = interface.ifa_addr.pointee.sa_family
@@ -187,8 +188,23 @@ final class WebServerManager: ObservableObject {
         }
         return address ?? "未分配IP"
     }
-    
+
+    // MARK: - 路径有效性检查
+    private func isStoragePathValid() -> Bool {
+        let path = storagePath.path
+        return !path.isEmpty && path != "null"
+    }
+
+    // MARK: - 刷新文件列表（增加路径有效性检查）
     func updateFileList() {
+        guard isStoragePathValid() else {
+            DispatchQueue.main.async {
+                self.files = []
+                self.log("⚠️ storagePath 无效，文件列表为空")
+            }
+            return
+        }
+
         guard let items = try? fileManager.contentsOfDirectory(atPath: storagePath.path) else {
             DispatchQueue.main.async {
                 self.files = []
@@ -212,7 +228,7 @@ final class WebServerManager: ObservableObject {
             self.files = newFiles
         }
     }
-    
+
     // MARK: - 书签持久化
     private func saveBookmark() {
         if isUsingCustomPath {
@@ -228,21 +244,26 @@ final class WebServerManager: ObservableObject {
             defaults.removeObject(forKey: "storageBookmarkData")
         }
     }
-    
+
     func setStoragePath(_ url: URL) {
+        guard !url.path.isEmpty && url.path != "null" else {
+            log("⚠️ 无效的目录路径")
+            return
+        }
+
         let success = url.startAccessingSecurityScopedResource()
         if !success {
             log("⚠️ 无法访问所选目录，请检查权限")
             return
         }
-        
+
         var isDir: ObjCBool = false
         guard fileManager.fileExists(atPath: url.path, isDirectory: &isDir), isDir.boolValue else {
             url.stopAccessingSecurityScopedResource()
             log("❌ 所选路径不是有效的目录")
             return
         }
-        
+
         let testFile = url.appendingPathComponent(".writetest")
         do {
             try "test".write(to: testFile, atomically: true, encoding: .utf8)
@@ -252,7 +273,7 @@ final class WebServerManager: ObservableObject {
             log("❌ 所选目录不可写入: \(error.localizedDescription)")
             return
         }
-        
+
         do {
             let bookmarkData = try url.bookmarkData(options: .minimalBookmark,
                                                    includingResourceValuesForKeys: nil,
@@ -263,23 +284,28 @@ final class WebServerManager: ObservableObject {
             log("❌ 保存书签失败: \(error.localizedDescription)")
             return
         }
-        
+
         isUsingCustomPath = true
         storagePath = url
         log("✅ 已切换存储目录至: \(url.lastPathComponent)")
     }
-    
+
     func resetToDefaultStorage() {
         if isUsingCustomPath {
             storagePath.stopAccessingSecurityScopedResource()
             isUsingCustomPath = false
         }
+        defaults.removeObject(forKey: "storageBookmarkData")
         let docs = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first!
         storagePath = docs
         log("🔄 已恢复默认存储目录")
     }
-    
+
     func deleteFile(_ file: FileInfo) {
+        guard isStoragePathValid() else {
+            log("⚠️ storagePath 无效，无法删除文件")
+            return
+        }
         let url = file.url
         do {
             try fileManager.removeItem(at: url)
@@ -293,7 +319,7 @@ final class WebServerManager: ObservableObject {
             }
         }
     }
-    
+
     // MARK: - HTTP 路由
     private func setupRoutes() {
         server["/"] = { [weak self] _ in
@@ -301,9 +327,12 @@ final class WebServerManager: ObservableObject {
             let html = self.generateHTML()
             return .ok(.html(html))
         }
-        
+
         server["/download/:path"] = { [weak self] request in
             guard let self = self else { return .internalServerError }
+            guard self.isStoragePathValid() else {
+                return .badRequest(.text("存储路径无效"))
+            }
             guard let filename = request.params[":path"]?
                 .addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) else {
                 return .badRequest(.text("文件名无效"))
@@ -317,9 +346,12 @@ final class WebServerManager: ObservableObject {
             }
             return .internalServerError
         }
-        
+
         server.POST["/upload"] = { [weak self] request in
             guard let self = self else { return .internalServerError }
+            guard self.isStoragePathValid() else {
+                return .badRequest(.text("存储路径无效"))
+            }
             let multiparts = request.parseMultiPartFormData()
             guard !multiparts.isEmpty else {
                 return .badRequest(.text("没有检测到上传的文件"))
@@ -348,9 +380,12 @@ final class WebServerManager: ObservableObject {
             ]
             return .ok(.json(result))
         }
-        
+
         server["/api/files"] = { [weak self] _ in
             guard let self = self else { return .internalServerError }
+            guard self.isStoragePathValid() else {
+                return .ok(.data(Data("[]".utf8), contentType: "application/json"))
+            }
             let items = try? self.fileManager.contentsOfDirectory(atPath: self.storagePath.path)
             let fileInfos = items?.filter { path in
                 var isDir: ObjCBool = false
@@ -368,10 +403,10 @@ final class WebServerManager: ObservableObject {
                 ]
             } ?? []
             let jsonData = try? JSONSerialization.data(withJSONObject: fileInfos)
-            return .ok(.data(jsonData ?? Data(), contentType: "application/json"))
+            return .ok(.data(jsonData ?? Data("[]".utf8), contentType: "application/json"))
         }
     }
-    
+
     private func generateHTML() -> String {
         let ip = currentIP
         let port = currentPort
@@ -622,13 +657,13 @@ final class WebServerManager: ObservableObject {
 </html>
 """
     }
-    
+
     func start(port: UInt16) throws {
         guard !isRunning else { return }
         currentPort = port
-        
+
         startAudioKeepAlive()
-        
+
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             guard let self = self else { return }
             do {
@@ -647,7 +682,7 @@ final class WebServerManager: ObservableObject {
             }
         }
     }
-    
+
     func stop() {
         server.stop()
         isRunning = false
