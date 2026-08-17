@@ -1,4 +1,4 @@
-﻿import SwiftUI
+import SwiftUI
 import UIKit
 
 // MARK: - 文件夹选择器
@@ -158,12 +158,12 @@ struct SettingsView: View {
                 }
             }
         }
-        .sheet(isPresented: ) {
-            FolderPicker(isPresented: ) { url in
+        .sheet(isPresented: $showFolderPicker) {
+            FolderPicker(isPresented: $showFolderPicker) { url in
                 manager.setStoragePath(url)
             }
         }
-        .alert("恢复默认存储位置", isPresented: ) {
+        .alert("恢复默认存储位置", isPresented: $showResetAlert) {
             Button("取消", role: .cancel) { }
             Button("恢复", role: .destructive) {
                 manager.resetToDefaultStorage()
@@ -181,12 +181,12 @@ struct ContentView: View {
     @State private var showDocumentPicker = false
     @State private var selectedFileURL: URL?
     @State private var showSettings = false
-    
     @State private var showAllLogs = false
     
     var body: some View {
         NavigationView {
             List {
+                // 服务信息
                 Section {
                     HStack {
                         Image(systemName: "wifi")
@@ -202,7 +202,7 @@ struct ContentView: View {
                     HStack {
                         Text("端口")
                         Spacer()
-                        TextField("端口", text: )
+                        TextField("端口", text: $inputPort)
                             .keyboardType(.numberPad)
                             .multilineTextAlignment(.trailing)
                             .frame(width: 100)
@@ -217,6 +217,7 @@ struct ContentView: View {
                     Text("服务信息")
                 }
                 
+                // 控制按钮
                 Section {
                     if manager.isRunning {
                         Button(action: manager.stop) {
@@ -250,6 +251,7 @@ struct ContentView: View {
                     }
                 }
                 
+                // 文件列表
                 Section {
                     if manager.files.isEmpty {
                         Text("暂无文件")
@@ -291,6 +293,7 @@ struct ContentView: View {
                     }
                 }
                 
+                // 运行日志
                 Section {
                     if manager.logMessages.isEmpty {
                         Text("暂无日志")
@@ -332,6 +335,7 @@ struct ContentView: View {
                     Text("运行日志")
                 }
                 
+                // 使用指南
                 Section {
                     VStack(alignment: .leading, spacing: 6) {
                         Text("📱 使用指南")
@@ -340,7 +344,6 @@ struct ContentView: View {
                         Text("2. 在其他设备的浏览器输入上方显示的地址（例如 192.168.0.100:8080）")
                         Text("3. 网页内可上传文件到手机，或点击下载手机里的文件")
                         Text("4. 手机内文件可通过本页面的「导出」按钮保存到其他位置")
-                        Text("5. 点击垃圾桶图标可删除文件")
                     }
                     .font(.footnote)
                     .foregroundColor(.secondary)
@@ -362,14 +365,14 @@ struct ContentView: View {
                 manager.currentIP = WebServerManager.getIPAddress()
                 manager.updateFileList()
             }
-            .sheet(isPresented: ) {
+            .sheet(isPresented: $showDocumentPicker) {
                 if let url = selectedFileURL {
                     DocumentPicker(fileURL: url) {
                         selectedFileURL = nil
                     }
                 }
             }
-            .sheet(isPresented: ) {
+            .sheet(isPresented: $showSettings) {
                 NavigationView {
                     SettingsView()
                 }
