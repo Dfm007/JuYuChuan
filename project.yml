@@ -1,0 +1,52 @@
+﻿name: 局域传
+options:
+  bundleIdPrefix: com.example
+  deploymentTarget:
+    iOS: "15.0"
+settings:
+  PRODUCT_NAME: 局域传
+  MARKETING_VERSION: 1.0
+  CURRENT_PROJECT_VERSION: 1
+
+packages:
+  Swifter:
+    url: https://github.com/httpswift/swifter
+    from: 1.5.0
+
+targets:
+  局域传:
+    type: application
+    platform: iOS
+    deploymentTarget: "15.0"
+    sources:
+      - Sources/App
+    dependencies:
+      - package: Swifter   
+      
+    resources:                         # ← 新增
+      - Sources/App/Assets.xcasset
+    settings:
+      PRODUCT_BUNDLE_IDENTIFIER: com.example.juyuchuan
+      INFOPLIST_KEY_UIBackgroundModes: ["audio"]
+    entitlements:
+      path: Sources/App.entitlements
+    info:
+      path: Sources/Info.plist
+      properties:
+        CFBundleDevelopmentRegion: $(DEVELOPMENT_LANGUAGE)
+        CFBundleExecutable: $(EXECUTABLE_NAME)
+        CFBundleInfoDictionaryVersion: "6.0"
+        CFBundleName: "局域传"
+        CFBundleDisplayName: "局域传"
+        CFBundlePackageType: "APPL"
+        CFBundleShortVersionString: "1.0"
+        CFBundleVersion: "1"
+        LSRequiresIPhoneOS: true
+        NSLocalNetworkUsageDescription: "局域传需要访问您的本地网络，以便在同一Wi-Fi下为其他设备提供文件传输服务。"
+        UIFileSharingEnabled: true
+        LSSupportsOpeningDocumentsInPlace: true
+        UIApplicationSceneManifest:
+          UIApplicationSupportsMultipleScenes: false
+        UILaunchScreen: {}
+        UIRequiredDeviceCapabilities: [arm64]
+        UISupportedInterfaceOrientations~iphone: [UIInterfaceOrientationPortrait]
