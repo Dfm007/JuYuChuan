@@ -8,7 +8,7 @@ struct FileInfo: Identifiable {
     let name: String
     let size: Int64
     let url: URL
-
+    
     var sizeString: String {
         let formatter = ByteCountFormatter()
         formatter.countStyle = .file
@@ -18,7 +18,7 @@ struct FileInfo: Identifiable {
 
 final class WebServerManager: ObservableObject {
     static let shared = WebServerManager()
-
+    
     private let server = HttpServer()
     private let fileManager = FileManager.default
     private let defaults = UserDefaults.standard
@@ -27,30 +27,29 @@ final class WebServerManager: ObservableObject {
         formatter.dateFormat = "HH:mm:ss"
         return formatter
     }()
-
+    
     // MARK: - 音频保活相关
     private var audioPlayer: AVAudioPlayer?
     private let audioSession = AVAudioSession.sharedInstance()
-
+    
     @Published var storagePath: URL {
         didSet {
             saveBookmark()
             updateFileList()
         }
     }
-
+    
     @Published var isRunning = false
     @Published var logMessages: [String] = []
     @Published var currentIP: String = "获取中..."
     @Published var currentPort: UInt16 = 8080
     @Published var files: [FileInfo] = []
     @Published var isUsingCustomPath = false
-
+    
     private init() {
         let docs = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first!
         self.storagePath = docs
-
-        // 尝试从 UserDefaults 恢复书签
+        
         if let bookmarkData = defaults.data(forKey: "storageBookmarkData") {
             var isStale = false
             do {
@@ -78,12 +77,12 @@ final class WebServerManager: ObservableObject {
                 defaults.removeObject(forKey: "storageBookmarkData")
             }
         }
-
+        
         self.currentIP = Self.getIPAddress()
         setupRoutes()
         updateFileList()
     }
-
+    
     // MARK: - 带时间戳的日志
     private func log(_ message: String) {
         let timestamp = dateFormatter.string(from: Date())
@@ -91,7 +90,7 @@ final class WebServerManager: ObservableObject {
             self.logMessages.append("[\(timestamp)] \(message)")
         }
     }
-
+    
     // MARK: - 生成 WAV 静音数据
     private func generateSilentWAV(duration: TimeInterval = 0.5) -> Data? {
         let sampleRate: Double = 44100.0
@@ -101,60 +100,60 @@ final class WebServerManager: ObservableObject {
         let blockAlign = numChannels * bitsPerSample / 8
         let numSamples = Int(sampleRate * duration)
         let dataSize = numSamples * Int(blockAlign)
-
+        
         var header = Data()
         header.append(contentsOf: [0x52, 0x49, 0x46, 0x46])
         let chunkSize = UInt32(36 + dataSize)
-        header.append(contentsOf: withUnsafeBytes(of: chunkSize.littleEndian) { Data() })
+        header.append(contentsOf: withUnsafeBytes(of: chunkSize.littleEndian) { Data($0) })
         header.append(contentsOf: [0x57, 0x41, 0x56, 0x45])
         header.append(contentsOf: [0x66, 0x6D, 0x74, 0x20])
         let subchunk1Size: UInt32 = 16
-        header.append(contentsOf: withUnsafeBytes(of: subchunk1Size.littleEndian) { Data() })
+        header.append(contentsOf: withUnsafeBytes(of: subchunk1Size.littleEndian) { Data($0) })
         let audioFormat: UInt16 = 1
-        header.append(contentsOf: withUnsafeBytes(of: audioFormat.littleEndian) { Data() })
-        header.append(contentsOf: withUnsafeBytes(of: numChannels.littleEndian) { Data() })
+        header.append(contentsOf: withUnsafeBytes(of: audioFormat.littleEndian) { Data($0) })
+        header.append(contentsOf: withUnsafeBytes(of: numChannels.littleEndian) { Data($0) })
         let sampleRateUInt32 = UInt32(sampleRate)
-        header.append(contentsOf: withUnsafeBytes(of: sampleRateUInt32.littleEndian) { Data() })
+        header.append(contentsOf: withUnsafeBytes(of: sampleRateUInt32.littleEndian) { Data($0) })
         let byteRateUInt32 = UInt32(byteRate)
-        header.append(contentsOf: withUnsafeBytes(of: byteRateUInt32.littleEndian) { Data() })
-        header.append(contentsOf: withUnsafeBytes(of: blockAlign.littleEndian) { Data() })
-        header.append(contentsOf: withUnsafeBytes(of: bitsPerSample.littleEndian) { Data() })
+        header.append(contentsOf: withUnsafeBytes(of: byteRateUInt32.littleEndian) { Data($0) })
+        header.append(contentsOf: withUnsafeBytes(of: blockAlign.littleEndian) { Data($0) })
+        header.append(contentsOf: withUnsafeBytes(of: bitsPerSample.littleEndian) { Data($0) })
         header.append(contentsOf: [0x64, 0x61, 0x74, 0x61])
         let subchunk2Size = UInt32(dataSize)
-        header.append(contentsOf: withUnsafeBytes(of: subchunk2Size.littleEndian) { Data() })
-
+        header.append(contentsOf: withUnsafeBytes(of: subchunk2Size.littleEndian) { Data($0) })
+        
         let silenceData = Data(repeating: 0, count: dataSize)
         var wavData = Data()
         wavData.append(header)
         wavData.append(silenceData)
         return wavData
     }
-
+    
     // MARK: - 音频保活控制
     private func startAudioKeepAlive() {
         stopAudioKeepAlive()
-
+        
         do {
             try audioSession.setCategory(.playback, mode: .default, options: [.mixWithOthers])
             try audioSession.setActive(true)
-
+            
             guard let wavData = generateSilentWAV(duration: 0.5) else {
                 log("⚠️ 生成静音数据失败")
                 return
             }
-
+            
             audioPlayer = try AVAudioPlayer(data: wavData)
             audioPlayer?.numberOfLoops = -1
             audioPlayer?.volume = 0.0
             audioPlayer?.prepareToPlay()
             audioPlayer?.play()
-
+            
             log("🎵 后台音频保活已启动")
         } catch {
             log("⚠️ 音频保活启动失败: \(error.localizedDescription)")
         }
     }
-
+    
     private func stopAudioKeepAlive() {
         audioPlayer?.stop()
         audioPlayer = nil
@@ -164,14 +163,14 @@ final class WebServerManager: ObservableObject {
             // 静默忽略
         }
     }
-
+    
     static func getIPAddress() -> String {
         var address: String?
         var ifaddr: UnsafeMutablePointer<ifaddrs>?
         guard getifaddrs(&ifaddr) == 0, let firstAddr = ifaddr else { return "未连接WiFi" }
         defer { freeifaddrs(ifaddr) }
-
-        for ptr in sequence(first: firstAddr, next: { .pointee.ifa_next }) {
+        
+        for ptr in sequence(first: firstAddr, next: { $0.pointee.ifa_next }) {
             let interface = ptr.pointee
             let addrFamily = interface.ifa_addr.pointee.sa_family
             if addrFamily == UInt8(AF_INET) {
@@ -188,7 +187,7 @@ final class WebServerManager: ObservableObject {
         }
         return address ?? "未分配IP"
     }
-
+    
     func updateFileList() {
         guard let items = try? fileManager.contentsOfDirectory(atPath: storagePath.path) else {
             DispatchQueue.main.async {
@@ -208,12 +207,12 @@ final class WebServerManager: ObservableObject {
                 }
             }
         }
-        newFiles.sort { .name < .name }
+        newFiles.sort { $0.name < $1.name }
         DispatchQueue.main.async {
             self.files = newFiles
         }
     }
-
+    
     // MARK: - 书签持久化
     private func saveBookmark() {
         if isUsingCustomPath {
@@ -229,21 +228,21 @@ final class WebServerManager: ObservableObject {
             defaults.removeObject(forKey: "storageBookmarkData")
         }
     }
-
+    
     func setStoragePath(_ url: URL) {
         let success = url.startAccessingSecurityScopedResource()
         if !success {
             log("⚠️ 无法访问所选目录，请检查权限")
             return
         }
-
+        
         var isDir: ObjCBool = false
         guard fileManager.fileExists(atPath: url.path, isDirectory: &isDir), isDir.boolValue else {
             url.stopAccessingSecurityScopedResource()
             log("❌ 所选路径不是有效的目录")
             return
         }
-
+        
         let testFile = url.appendingPathComponent(".writetest")
         do {
             try "test".write(to: testFile, atomically: true, encoding: .utf8)
@@ -253,8 +252,7 @@ final class WebServerManager: ObservableObject {
             log("❌ 所选目录不可写入: \(error.localizedDescription)")
             return
         }
-
-        // 保存书签
+        
         do {
             let bookmarkData = try url.bookmarkData(options: .minimalBookmark,
                                                    includingResourceValuesForKeys: nil,
@@ -265,12 +263,12 @@ final class WebServerManager: ObservableObject {
             log("❌ 保存书签失败: \(error.localizedDescription)")
             return
         }
-
+        
         isUsingCustomPath = true
         storagePath = url
         log("✅ 已切换存储目录至: \(url.lastPathComponent)")
     }
-
+    
     func resetToDefaultStorage() {
         if isUsingCustomPath {
             storagePath.stopAccessingSecurityScopedResource()
@@ -280,8 +278,7 @@ final class WebServerManager: ObservableObject {
         storagePath = docs
         log("🔄 已恢复默认存储目录")
     }
-
-    // MARK: - App 内部删除文件（保留，供 ContentView 使用）
+    
     func deleteFile(_ file: FileInfo) {
         let url = file.url
         do {
@@ -296,7 +293,7 @@ final class WebServerManager: ObservableObject {
             }
         }
     }
-
+    
     // MARK: - HTTP 路由
     private func setupRoutes() {
         server["/"] = { [weak self] _ in
@@ -304,7 +301,7 @@ final class WebServerManager: ObservableObject {
             let html = self.generateHTML()
             return .ok(.html(html))
         }
-
+        
         server["/download/:path"] = { [weak self] request in
             guard let self = self else { return .internalServerError }
             guard let filename = request.params[":path"]?
@@ -320,7 +317,7 @@ final class WebServerManager: ObservableObject {
             }
             return .internalServerError
         }
-
+        
         server.POST["/upload"] = { [weak self] request in
             guard let self = self else { return .internalServerError }
             let multiparts = request.parseMultiPartFormData()
@@ -351,9 +348,7 @@ final class WebServerManager: ObservableObject {
             ]
             return .ok(.json(result))
         }
-
-        // 网页端删除路由已移除
-
+        
         server["/api/files"] = { [weak self] _ in
             guard let self = self else { return .internalServerError }
             let items = try? self.fileManager.contentsOfDirectory(atPath: self.storagePath.path)
@@ -376,7 +371,7 @@ final class WebServerManager: ObservableObject {
             return .ok(.data(jsonData ?? Data(), contentType: "application/json"))
         }
     }
-
+    
     private func generateHTML() -> String {
         let ip = currentIP
         let port = currentPort
@@ -513,13 +508,13 @@ final class WebServerManager: ObservableObject {
                     let html = '<div class="file-list">';
                     files.forEach(f => {
                         const sizeStr = f.size > 1024*1024 ? (f.size/1024/1024).toFixed(1) + ' MB' : (f.size/1024).toFixed(1) + ' KB';
-                        html += 
+                        html += `
                             <div class="file-item">
-                                <span class="file-name">📄 </span>
-                                <span class="file-size"></span>
-                                <a href="" class="file-download" download>⬇️ 下载</a>
+                                <span class="file-name">📄 ${escapeHtml(f.name)}</span>
+                                <span class="file-size">${sizeStr}</span>
+                                <a href="${f.url}" class="file-download" download>⬇️ 下载</a>
                             </div>
-                        ;
+                        `;
                     });
                     html += '</div>';
                     fileListContainer.innerHTML = html;
@@ -627,13 +622,13 @@ final class WebServerManager: ObservableObject {
 </html>
 """
     }
-
+    
     func start(port: UInt16) throws {
         guard !isRunning else { return }
         currentPort = port
-
+        
         startAudioKeepAlive()
-
+        
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             guard let self = self else { return }
             do {
@@ -652,7 +647,7 @@ final class WebServerManager: ObservableObject {
             }
         }
     }
-
+    
     func stop() {
         server.stop()
         isRunning = false
