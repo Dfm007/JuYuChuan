@@ -23,28 +23,28 @@ jobs:
 
       - name: 编译 App (强制关闭签名)
         run: |
-          xcodebuild -project 局域传.xcodeproj \\
-                     -scheme 局域传 \\
-                     -configuration Release \\
-                     -derivedDataPath build \\
-                     -destination 'generic/platform=iOS' \\
-                     CODE_SIGN_IDENTITY="" \\
-                     CODE_SIGNING_REQUIRED=NO \\
-                     CODE_SIGNING_ALLOWED=NO \\
-                     AD_HOC_CODE_SIGNING_ALLOWED=YES \\
-                     DEVELOPMENT_TEAM="" \\
+          xcodebuild -project 局域传.xcodeproj \
+                     -scheme 局域传 \
+                     -configuration Release \
+                     -derivedDataPath build \
+                     -destination 'generic/platform=iOS' \
+                     CODE_SIGN_IDENTITY="" \
+                     CODE_SIGNING_REQUIRED=NO \
+                     CODE_SIGNING_ALLOWED=NO \
+                     AD_HOC_CODE_SIGNING_ALLOWED=YES \
+                     DEVELOPMENT_TEAM="" \
                      PROVISIONING_PROFILE_SPECIFIER=""
 
       - name: 打包为未签名的 IPA
         run: |
           APP_PATH="build/Build/Products/Release-iphoneos/局域传.app"
-          if [ -z "" ]; then
+          if [ -z "$APP_PATH" ]; then
             echo "::error::未找到 .app 文件，编译失败！"
             exit 1
           fi
-          echo "找到 App: "
+          echo "找到 App: $APP_PATH"
           mkdir Payload
-          cp -R "" Payload/
+          cp -R "$APP_PATH" Payload/
           zip -r 局域传.ipa Payload/
 
       - name: 上传构建产物
