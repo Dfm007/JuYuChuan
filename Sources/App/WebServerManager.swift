@@ -34,7 +34,6 @@ final class WebServerManager: ObservableObject {
 
     @Published var storagePath: URL {
         didSet {
-            saveBookmark()
             updateFileList()
         }
     }
@@ -84,7 +83,7 @@ final class WebServerManager: ObservableObject {
 
             if isStale {
                 do {
-                    let fresh = try url.bookmarkData(options: [.withSecurityScope, .minimalBookmark],
+                    let fresh = try url.bookmarkData(options: .minimalBookmark,
                                                     includingResourceValuesForKeys: nil,
                                                     relativeTo: nil)
                     defaults.set(fresh, forKey: "storageBookmarkData")
@@ -227,22 +226,6 @@ final class WebServerManager: ObservableObject {
         }
     }
 
-    // MARK: - 书签持久化
-    private func saveBookmark() {
-        if isUsingCustomPath {
-            do {
-                let bookmarkData = try storagePath.bookmarkData(options: [.withSecurityScope, .minimalBookmark],
-                                                               includingResourceValuesForKeys: nil,
-                                                               relativeTo: nil)
-                defaults.set(bookmarkData, forKey: "storageBookmarkData")
-            } catch {
-                log("❌ 保存书签失败: \(error.localizedDescription)")
-            }
-        } else {
-            defaults.removeObject(forKey: "storageBookmarkData")
-        }
-    }
-
     func setStoragePath(_ url: URL) {
         let success = url.startAccessingSecurityScopedResource()
         if !success {
@@ -269,7 +252,7 @@ final class WebServerManager: ObservableObject {
 
         // 保存书签
         do {
-            let bookmarkData = try url.bookmarkData(options: [.withSecurityScope, .minimalBookmark],
+            let bookmarkData = try url.bookmarkData(options: .minimalBookmark,
                                                    includingResourceValuesForKeys: nil,
                                                    relativeTo: nil)
             defaults.set(bookmarkData, forKey: "storageBookmarkData")
@@ -289,6 +272,7 @@ final class WebServerManager: ObservableObject {
             storagePath.stopAccessingSecurityScopedResource()
             isUsingCustomPath = false
         }
+        defaults.removeObject(forKey: "storageBookmarkData")
         let docs = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first!
         storagePath = docs
         log("🔄 已恢复默认存储目录")
