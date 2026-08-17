@@ -34,6 +34,10 @@ final class WebServerManager: ObservableObject {
 
     @Published var storagePath: URL {
         didSet {
+            guard isStoragePathValid() else {
+                log("⚠️ storagePath 无效，跳过保存和刷新")
+                return
+            }
             saveBookmark()
             updateFileList()
         }
@@ -195,7 +199,7 @@ final class WebServerManager: ObservableObject {
         return !path.isEmpty && path != "null"
     }
 
-    // MARK: - 刷新文件列表（增加路径有效性检查）
+    // MARK: - 刷新文件列表
     func updateFileList() {
         guard isStoragePathValid() else {
             DispatchQueue.main.async {
