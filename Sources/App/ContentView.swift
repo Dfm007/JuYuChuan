@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 ﻿import SwiftUI
+=======
+import SwiftUI
+>>>>>>> 5f4877972e34a8c46b65b6d649660903250c7989
 import UIKit
 
 // MARK: - 文件夹选择器
@@ -79,7 +83,10 @@ struct SettingsView: View {
     
     var body: some View {
         List {
+<<<<<<< HEAD
             // 存储设置
+=======
+>>>>>>> 5f4877972e34a8c46b65b6d649660903250c7989
             Section {
                 HStack {
                     VStack(alignment: .leading, spacing: 4) {
@@ -133,7 +140,10 @@ struct SettingsView: View {
                 Text("上传的文件将保存在所选目录中。选择自定义目录后，App 重启后仍会记住该位置。")
             }
             
+<<<<<<< HEAD
             // 关于
+=======
+>>>>>>> 5f4877972e34a8c46b65b6d649660903250c7989
             Section {
                 HStack {
                     Text("版本")
@@ -182,6 +192,7 @@ struct ContentView: View {
     @State private var inputPort: String = "8080"
     @State private var showDocumentPicker = false
     @State private var selectedFileURL: URL?
+<<<<<<< HEAD
     
     // 删除确认
     @State private var fileToDelete: FileInfo?
@@ -192,11 +203,19 @@ struct ContentView: View {
     
     // 设置页面
     @State private var showSettings = false
+=======
+    @State private var showSettings = false
+    @State private var showAllLogs = false
+>>>>>>> 5f4877972e34a8c46b65b6d649660903250c7989
     
     var body: some View {
         NavigationView {
             List {
+<<<<<<< HEAD
                 // 1. 服务信息
+=======
+                // 服务信息
+>>>>>>> 5f4877972e34a8c46b65b6d649660903250c7989
                 Section {
                     HStack {
                         Image(systemName: "wifi")
@@ -227,7 +246,11 @@ struct ContentView: View {
                     Text("服务信息")
                 }
                 
+<<<<<<< HEAD
                 // 2. 控制按钮
+=======
+                // 控制按钮
+>>>>>>> 5f4877972e34a8c46b65b6d649660903250c7989
                 Section {
                     if manager.isRunning {
                         Button(action: manager.stop) {
@@ -261,7 +284,11 @@ struct ContentView: View {
                     }
                 }
                 
+<<<<<<< HEAD
                 // 3. 文件列表
+=======
+                // 文件列表
+>>>>>>> 5f4877972e34a8c46b65b6d649660903250c7989
                 Section {
                     if manager.files.isEmpty {
                         Text("暂无文件")
@@ -279,6 +306,7 @@ struct ContentView: View {
                                         .foregroundColor(.secondary)
                                 }
                                 Spacer()
+<<<<<<< HEAD
                                 HStack(spacing: 8) {
                                     Button("导出") {
                                         selectedFileURL = file.url
@@ -297,6 +325,14 @@ struct ContentView: View {
                                     }
                                     .buttonStyle(.borderless)
                                 }
+=======
+                                Button("导出") {
+                                    selectedFileURL = file.url
+                                    showDocumentPicker = true
+                                }
+                                .buttonStyle(.bordered)
+                                .font(.caption)
+>>>>>>> 5f4877972e34a8c46b65b6d649660903250c7989
                             }
                             .padding(.vertical, 2)
                         }
@@ -315,20 +351,30 @@ struct ContentView: View {
                     }
                 }
                 
+<<<<<<< HEAD
                 // 4. 运行日志（折叠/展开）
+=======
+                // 运行日志
+>>>>>>> 5f4877972e34a8c46b65b6d649660903250c7989
                 Section {
                     if manager.logMessages.isEmpty {
                         Text("暂无日志")
                             .foregroundColor(.secondary)
                     } else {
+<<<<<<< HEAD
                         // 总是显示最新一条
+=======
+>>>>>>> 5f4877972e34a8c46b65b6d649660903250c7989
                         if let lastLog = manager.logMessages.last {
                             Text(lastLog)
                                 .font(.system(.caption, design: .monospaced))
                                 .padding(.vertical, 2)
                         }
                         
+<<<<<<< HEAD
                         // 如果展开，显示全部（除最后一条外，避免重复）
+=======
+>>>>>>> 5f4877972e34a8c46b65b6d649660903250c7989
                         if showAllLogs {
                             ForEach(manager.logMessages.dropLast(), id: \.self) { msg in
                                 Text(msg)
@@ -337,7 +383,10 @@ struct ContentView: View {
                             }
                         }
                         
+<<<<<<< HEAD
                         // 展开/折叠按钮
+=======
+>>>>>>> 5f4877972e34a8c46b65b6d649660903250c7989
                         if manager.logMessages.count > 1 {
                             Button(action: {
                                 withAnimation {
@@ -360,7 +409,11 @@ struct ContentView: View {
                     Text("运行日志")
                 }
                 
+<<<<<<< HEAD
                 // 5. 使用指南
+=======
+                // 使用指南
+>>>>>>> 5f4877972e34a8c46b65b6d649660903250c7989
                 Section {
                     VStack(alignment: .leading, spacing: 6) {
                         Text("📱 使用指南")
@@ -369,7 +422,10 @@ struct ContentView: View {
                         Text("2. 在其他设备的浏览器输入上方显示的地址（例如 192.168.0.100:8080）")
                         Text("3. 网页内可上传文件到手机，或点击下载手机里的文件")
                         Text("4. 手机内文件可通过本页面的「导出」按钮保存到其他位置")
+<<<<<<< HEAD
                         Text("5. 点击垃圾桶图标可删除文件")
+=======
+>>>>>>> 5f4877972e34a8c46b65b6d649660903250c7989
                     }
                     .font(.footnote)
                     .foregroundColor(.secondary)
@@ -403,6 +459,7 @@ struct ContentView: View {
                     SettingsView()
                 }
             }
+<<<<<<< HEAD
             .alert("确认删除", isPresented: $showDeleteAlert) {
                 Button("取消", role: .cancel) {
                     fileToDelete = nil
@@ -423,3 +480,8 @@ struct ContentView: View {
         }
     }
 }
+=======
+        }
+    }
+}
+>>>>>>> 5f4877972e34a8c46b65b6d649660903250c7989

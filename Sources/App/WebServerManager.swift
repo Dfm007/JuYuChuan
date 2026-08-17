@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 ﻿import Foundation
+=======
+import Foundation
+>>>>>>> 5f4877972e34a8c46b65b6d649660903250c7989
 import Swifter
 import UIKit
 import AVFoundation
@@ -34,6 +38,13 @@ final class WebServerManager: ObservableObject {
 
     @Published var storagePath: URL {
         didSet {
+<<<<<<< HEAD
+=======
+            guard isStoragePathValid() else {
+                log("⚠️ storagePath 无效，跳过保存和刷新")
+                return
+            }
+>>>>>>> 5f4877972e34a8c46b65b6d649660903250c7989
             saveBookmark()
             updateFileList()
         }
@@ -189,7 +200,26 @@ final class WebServerManager: ObservableObject {
         return address ?? "未分配IP"
     }
 
+<<<<<<< HEAD
     func updateFileList() {
+=======
+    // MARK: - 路径有效性检查
+    private func isStoragePathValid() -> Bool {
+        let path = storagePath.path
+        return !path.isEmpty && path != "null"
+    }
+
+    // MARK: - 刷新文件列表
+    func updateFileList() {
+        guard isStoragePathValid() else {
+            DispatchQueue.main.async {
+                self.files = []
+                self.log("⚠️ storagePath 无效，文件列表为空")
+            }
+            return
+        }
+
+>>>>>>> 5f4877972e34a8c46b65b6d649660903250c7989
         guard let items = try? fileManager.contentsOfDirectory(atPath: storagePath.path) else {
             DispatchQueue.main.async {
                 self.files = []
@@ -231,6 +261,14 @@ final class WebServerManager: ObservableObject {
     }
 
     func setStoragePath(_ url: URL) {
+<<<<<<< HEAD
+=======
+        guard !url.path.isEmpty && url.path != "null" else {
+            log("⚠️ 无效的目录路径")
+            return
+        }
+
+>>>>>>> 5f4877972e34a8c46b65b6d649660903250c7989
         let success = url.startAccessingSecurityScopedResource()
         if !success {
             log("⚠️ 无法访问所选目录，请检查权限")
@@ -254,7 +292,10 @@ final class WebServerManager: ObservableObject {
             return
         }
 
+<<<<<<< HEAD
         // 保存书签
+=======
+>>>>>>> 5f4877972e34a8c46b65b6d649660903250c7989
         do {
             let bookmarkData = try url.bookmarkData(options: .minimalBookmark,
                                                    includingResourceValuesForKeys: nil,
@@ -276,13 +317,25 @@ final class WebServerManager: ObservableObject {
             storagePath.stopAccessingSecurityScopedResource()
             isUsingCustomPath = false
         }
+<<<<<<< HEAD
+=======
+        defaults.removeObject(forKey: "storageBookmarkData")
+>>>>>>> 5f4877972e34a8c46b65b6d649660903250c7989
         let docs = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first!
         storagePath = docs
         log("🔄 已恢复默认存储目录")
     }
 
+<<<<<<< HEAD
     // MARK: - App 内部删除文件（保留，供 ContentView 使用）
     func deleteFile(_ file: FileInfo) {
+=======
+    func deleteFile(_ file: FileInfo) {
+        guard isStoragePathValid() else {
+            log("⚠️ storagePath 无效，无法删除文件")
+            return
+        }
+>>>>>>> 5f4877972e34a8c46b65b6d649660903250c7989
         let url = file.url
         do {
             try fileManager.removeItem(at: url)
@@ -307,6 +360,12 @@ final class WebServerManager: ObservableObject {
 
         server["/download/:path"] = { [weak self] request in
             guard let self = self else { return .internalServerError }
+<<<<<<< HEAD
+=======
+            guard self.isStoragePathValid() else {
+                return .badRequest(.text("存储路径无效"))
+            }
+>>>>>>> 5f4877972e34a8c46b65b6d649660903250c7989
             guard let filename = request.params[":path"]?
                 .addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) else {
                 return .badRequest(.text("文件名无效"))
@@ -323,6 +382,12 @@ final class WebServerManager: ObservableObject {
 
         server.POST["/upload"] = { [weak self] request in
             guard let self = self else { return .internalServerError }
+<<<<<<< HEAD
+=======
+            guard self.isStoragePathValid() else {
+                return .badRequest(.text("存储路径无效"))
+            }
+>>>>>>> 5f4877972e34a8c46b65b6d649660903250c7989
             let multiparts = request.parseMultiPartFormData()
             guard !multiparts.isEmpty else {
                 return .badRequest(.text("没有检测到上传的文件"))
@@ -352,10 +417,18 @@ final class WebServerManager: ObservableObject {
             return .ok(.json(result))
         }
 
+<<<<<<< HEAD
         // 注意：网页端删除路由已移除
 
         server["/api/files"] = { [weak self] _ in
             guard let self = self else { return .internalServerError }
+=======
+        server["/api/files"] = { [weak self] _ in
+            guard let self = self else { return .internalServerError }
+            guard self.isStoragePathValid() else {
+                return .ok(.data(Data("[]".utf8), contentType: "application/json"))
+            }
+>>>>>>> 5f4877972e34a8c46b65b6d649660903250c7989
             let items = try? self.fileManager.contentsOfDirectory(atPath: self.storagePath.path)
             let fileInfos = items?.filter { path in
                 var isDir: ObjCBool = false
@@ -373,7 +446,11 @@ final class WebServerManager: ObservableObject {
                 ]
             } ?? []
             let jsonData = try? JSONSerialization.data(withJSONObject: fileInfos)
+<<<<<<< HEAD
             return .ok(.data(jsonData ?? Data(), contentType: "application/json"))
+=======
+            return .ok(.data(jsonData ?? Data("[]".utf8), contentType: "application/json"))
+>>>>>>> 5f4877972e34a8c46b65b6d649660903250c7989
         }
     }
 

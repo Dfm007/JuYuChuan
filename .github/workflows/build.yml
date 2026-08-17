@@ -1,4 +1,4 @@
-name: 编译未签名 IPA
+﻿name: 编译未签名 IPA
 
 on:
   push:
@@ -18,14 +18,13 @@ jobs:
       - name: 生成 Xcode 项目
         run: xcodegen generate
 
-      # 显式解析 SPM 依赖（Swifter）
       - name: 解析 Swift 包依赖
-        run: xcodebuild -project 网传.xcodeproj -scheme 网传 -destination 'generic/platform=iOS' -resolvePackageDependencies
+        run: xcodebuild -project 局域传.xcodeproj -scheme 局域传 -destination 'generic/platform=iOS' -resolvePackageDependencies
 
       - name: 编译 App (强制关闭签名)
         run: |
-          xcodebuild -project 网传.xcodeproj \
-                     -scheme 网传 \
+          xcodebuild -project 局域传.xcodeproj \
+                     -scheme 局域传 \
                      -configuration Release \
                      -derivedDataPath build \
                      -destination 'generic/platform=iOS' \
@@ -38,7 +37,7 @@ jobs:
 
       - name: 打包为未签名的 IPA
         run: |
-          APP_PATH=$(find build/Build/Products/Release-iphoneos -name "*.app" | head -n 1)
+          APP_PATH="build/Build/Products/Release-iphoneos/局域传.app"
           if [ -z "$APP_PATH" ]; then
             echo "::error::未找到 .app 文件，编译失败！"
             exit 1
@@ -46,10 +45,10 @@ jobs:
           echo "找到 App: $APP_PATH"
           mkdir Payload
           cp -R "$APP_PATH" Payload/
-          zip -r 网传.ipa Payload/
+          zip -r 局域传.ipa Payload/
 
       - name: 上传构建产物
         uses: actions/upload-artifact@v4
         with:
-          name: 网传-未签名包
-          path: 网传.ipa
+          name: 局域传-未签名包
+          path: 局域传.ipa

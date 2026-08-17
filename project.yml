@@ -15,16 +15,25 @@ packages:
 
 targets:
   局域传:
+<<<<<<< HEAD
+=======
+    resources:
+      - Sources/App/Assets.xcassets
+>>>>>>> 5f4877972e34a8c46b65b6d649660903250c7989
     type: application
     platform: iOS
     deploymentTarget: "15.0"
     sources:
       - Sources/App
     dependencies:
+<<<<<<< HEAD
       - package: Swifter   
       
     resources:                         # ← 新增
       - Sources/App/Assets.xcasset
+=======
+      - package: Swifter
+>>>>>>> 5f4877972e34a8c46b65b6d649660903250c7989
     settings:
       PRODUCT_BUNDLE_IDENTIFIER: com.example.juyuchuan
       INFOPLIST_KEY_UIBackgroundModes: ["audio"]
@@ -33,8 +42,13 @@ targets:
     info:
       path: Sources/Info.plist
       properties:
+<<<<<<< HEAD
         CFBundleDevelopmentRegion: $(DEVELOPMENT_LANGUAGE)
         CFBundleExecutable: $(EXECUTABLE_NAME)
+=======
+        CFBundleDevelopmentRegion: 
+        CFBundleExecutable: 
+>>>>>>> 5f4877972e34a8c46b65b6d649660903250c7989
         CFBundleInfoDictionaryVersion: "6.0"
         CFBundleName: "局域传"
         CFBundleDisplayName: "局域传"
