@@ -111,20 +111,20 @@ struct SettingsView: View {
                     }
                 }
                 
-                HStack {
-                    Button("选择自定义目录") {
-                        showFolderPicker = true
-                    }
-                    .buttonStyle(.bordered)
-                    
-                    Spacer()
-                    
+             HStack {
                     Button("恢复默认") {
                         showResetAlert = true
                     }
                     .buttonStyle(.bordered)
                     .foregroundColor(.red)
                     .disabled(!manager.isUsingCustomPath)
+                    
+                    Spacer()
+                    
+                    Button("选择自定义目录") {
+                        showFolderPicker = true
+                    }
+                    .buttonStyle(.bordered)
                 }
             } header: {
                 Text("存储设置")
