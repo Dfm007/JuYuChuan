@@ -295,7 +295,13 @@ final class WebServerManager: ObservableObject {
     }
 
     // MARK: - HTTP 路由
-    private func setupRoutes() {
+    private func setupRoutes() {    
+        server["/"] = { [weak self] _ in
+            guard let self = self else { return .internalServerError }
+            let html = self.generateHTML()
+            return .ok(.html(html))
+        }
+
         server["/icon.png"] = { [weak self] _ in
     guard let self = self else { return .internalServerError }
     guard let url = Bundle.main.url(forResource: "app-icon", withExtension: "png"),
@@ -304,12 +310,6 @@ final class WebServerManager: ObservableObject {
     }
     return .ok(.data(data, contentType: "image/png"))
 }
-        
-        server["/"] = { [weak self] _ in
-            guard let self = self else { return .internalServerError }
-            let html = self.generateHTML()
-            return .ok(.html(html))
-        }
 
         server["/download/:path"] = { [weak self] request in
             guard let self = self else { return .internalServerError }
