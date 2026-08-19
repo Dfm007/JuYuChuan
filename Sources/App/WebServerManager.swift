@@ -88,7 +88,7 @@ final class WebServerManager: ObservableObject {
                                                     relativeTo: nil)
                     defaults.set(fresh, forKey: "storageBookmarkData")
                 } catch {
-                    log("⚠️ 书签过期，重新保存失败: (error.localizedDescription)")
+                    log("⚠️ 书签过期，重新保存失败: \(error.localizedDescription)")
                 }
             }
         } catch {
@@ -385,241 +385,657 @@ final class WebServerManager: ObservableObject {
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
     <title>局域传 · 文件传输</title>
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
+        :root {
+            --bg: #05070d;
+            --text: #f5f7fb;
+            --text-dim: rgba(235, 240, 250, 0.62);
+            --text-faint: rgba(235, 240, 250, 0.38);
+            --accent: #0a84ff;
+            --green: #30d158;
+            --radius: 28px;
+            --glass-bg: linear-gradient(135deg, rgba(255,255,255,0.11), rgba(255,255,255,0.045));
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background: #f2f4f8;
-            color: #1c1e24;
-            padding: 20px;
-            max-width: 700px;
-            margin: 0 auto;
+            min-height: 100vh;
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
+            color: var(--text);
+            background: var(--bg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 32px 16px;
+            overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
         }
-        .card {
-            background: white;
-            border-radius: 24px;
-            padding: 24px 20px;
-            margin-bottom: 20px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.04);
-            border: 1px solid #e9ecf0;
+        .bg {
+            position: fixed;
+            inset: 0;
+            z-index: -2;
+            overflow: hidden;
+            background:
+                radial-gradient(ellipse 120% 80% at 50% -20%, #0d1526 0%, transparent 60%),
+                #05070d;
         }
-        h1 { font-size: 28px; font-weight: 700; display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
-        h1 small { font-size: 16px; font-weight: 400; color: #6b7280; }
-        .addr-box {
-            background: #f0f3f7;
-            padding: 14px 18px;
-            border-radius: 16px;
-            font-family: monospace;
-            font-size: 18px;
-            font-weight: 500;
-            word-break: break-all;
+        .orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(90px);
+            opacity: 0.55;
+            will-change: transform;
+            mix-blend-mode: screen;
+        }
+        .orb-1 {
+            width: 46vw; height: 46vw;
+            background: radial-gradient(circle at 30% 30%, #2b6cff, #5e5ce6 55%, transparent 72%);
+            top: -12%; left: -8%;
+            animation: drift1 26s ease-in-out infinite alternate;
+        }
+        .orb-2 {
+            width: 40vw; height: 40vw;
+            background: radial-gradient(circle at 60% 40%, #9b4dff, #d6397a 55%, transparent 72%);
+            bottom: -14%; right: -8%;
+            animation: drift2 32s ease-in-out infinite alternate;
+        }
+        .orb-3 {
+            width: 34vw; height: 34vw;
+            background: radial-gradient(circle at 50% 50%, #0ae2c8, #0a84ff 58%, transparent 74%);
+            top: 38%; left: 52%;
+            opacity: 0.4;
+            animation: drift3 38s ease-in-out infinite alternate;
+        }
+        @keyframes drift1 {
+            0%   { transform: translate(0, 0) scale(1); }
+            50%  { transform: translate(12vw, 18vh) scale(1.18); }
+            100% { transform: translate(-6vw, 8vh) scale(0.94); }
+        }
+        @keyframes drift2 {
+            0%   { transform: translate(0, 0) scale(1); }
+            50%  { transform: translate(-14vw, -10vh) scale(1.22); }
+            100% { transform: translate(6vw, -16vh) scale(0.92); }
+        }
+        @keyframes drift3 {
+            0%   { transform: translate(0, 0) scale(1) rotate(0deg); }
+            50%  { transform: translate(-10vw, -12vh) scale(1.12) rotate(30deg); }
+            100% { transform: translate(8vw, 10vh) scale(0.96) rotate(-20deg); }
+        }
+        .grain {
+            position: fixed;
+            inset: 0;
+            z-index: -1;
+            pointer-events: none;
+            opacity: 0.05;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+        }
+        .glass {
+            position: relative;
+            background: var(--glass-bg);
+            -webkit-backdrop-filter: blur(28px) saturate(180%);
+            backdrop-filter: blur(28px) saturate(180%);
+            border: 1px solid rgba(255,255,255,0.14);
+            border-radius: var(--radius);
+            box-shadow:
+                0 20px 60px rgba(0,0,0,0.45),
+                0 4px 16px rgba(0,0,0,0.25),
+                inset 0 1px 0 rgba(255,255,255,0.22),
+                inset 0 -1px 0 rgba(255,255,255,0.04);
+            transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1),
+                        box-shadow 0.35s ease,
+                        border-color 0.35s ease;
+        }
+        .glass::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            border-radius: inherit;
+            padding: 1px;
+            background: linear-gradient(
+                130deg,
+                rgba(255,255,255,0.42) 0%,
+                rgba(255,255,255,0.08) 18%,
+                rgba(255,255,255,0.02) 40%,
+                rgba(255,255,255,0.10) 65%,
+                rgba(255,255,255,0.35) 100%
+            );
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+            pointer-events: none;
+        }
+        .glass::after {
+            content: "";
+            position: absolute;
+            width: 55%;
+            height: 45%;
+            top: -18%;
+            left: 10%;
+            background: radial-gradient(ellipse, rgba(255,255,255,0.16), transparent 70%);
+            border-radius: 50%;
+            filter: blur(18px);
+            pointer-events: none;
+            animation: sheen 9s ease-in-out infinite alternate;
+        }
+        @keyframes sheen {
+            0%   { transform: translateX(-6%) scale(1); opacity: 0.7; }
+            100% { transform: translateX(60%) scale(1.25); opacity: 0.4; }
+        }
+        .glass:hover {
+            border-color: rgba(255,255,255,0.24);
+            box-shadow:
+                0 28px 70px rgba(0,0,0,0.5),
+                0 6px 20px rgba(0,0,0,0.28),
+                inset 0 1px 0 rgba(255,255,255,0.3),
+                inset 0 -1px 0 rgba(255,255,255,0.06);
+            transform: translateY(-2px);
+        }
+        .container {
+            width: 100%;
+            max-width: 680px;
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+        header {
             display: flex;
             align-items: center;
             justify-content: space-between;
+            padding: 8px 6px 4px;
+        }
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .brand-icon {
+            width: 46px; height: 46px;
+            display: grid;
+            place-items: center;
+            border-radius: 14px;
+            font-size: 16px;
+            font-weight: 700;
+            color: #fff;
+            background: linear-gradient(135deg, rgba(10,132,255,0.28), rgba(94,92,230,0.28));
+            border: 1px solid rgba(255,255,255,0.18);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.25);
+            -webkit-backdrop-filter: blur(14px);
+            backdrop-filter: blur(14px);
+        }
+        .brand h1 {
+            font-size: 24px;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+        }
+        .brand p {
+            font-size: 13px;
+            color: var(--text-dim);
+            margin-top: 2px;
+        }
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--green);
+            padding: 8px 14px;
+            border-radius: 999px;
+            background: rgba(48,209,88,0.12);
+            border: 1px solid rgba(48,209,88,0.28);
+            -webkit-backdrop-filter: blur(12px);
+            backdrop-filter: blur(12px);
+        }
+        .badge .dot {
+            width: 7px; height: 7px;
+            border-radius: 50%;
+            background: var(--green);
+            box-shadow: 0 0 10px var(--green);
+            animation: pulse 2.2s ease-in-out infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50%      { opacity: 0.5; transform: scale(0.8); }
+        }
+        .card-addr {
+            padding: 20px 22px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 14px;
             flex-wrap: wrap;
-            gap: 10px;
-            margin: 12px 0 4px 0;
         }
-        .badge { background: #34c759; color: white; padding: 4px 12px; border-radius: 20px; font-size: 14px; font-weight: 600; }
-        .upload-area {
-            border: 2px dashed #cdd2db;
-            border-radius: 20px;
-            padding: 30px 15px;
+        .addr-left {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            min-width: 0;
+        }
+        .addr-left .glyph {
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--text-dim);
+            letter-spacing: 0.04em;
+        }
+        .addr-text {
+            font-family: "SF Mono", "SFMono-Regular", ui-monospace, Menlo, Consolas, monospace;
+            font-size: 17px;
+            font-weight: 600;
+            color: #dbe6ff;
+            word-break: break-all;
+            letter-spacing: 0.01em;
+        }
+        .addr-label {
+            font-size: 12px;
+            color: var(--text-faint);
+            margin-bottom: 3px;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+        }
+        .copy-btn {
+            flex-shrink: 0;
+            border: none;
+            cursor: pointer;
+            color: var(--text);
+            font-size: 14px;
+            font-weight: 600;
+            padding: 10px 18px;
+            border-radius: 14px;
+            background: rgba(255,255,255,0.09);
+            border: 1px solid rgba(255,255,255,0.16);
+            -webkit-backdrop-filter: blur(10px);
+            backdrop-filter: blur(10px);
+            transition: all 0.25s ease;
+        }
+        .copy-btn:hover {
+            background: rgba(255,255,255,0.16);
+            border-color: rgba(255,255,255,0.3);
+            transform: scale(1.04);
+        }
+        .copy-btn:active { transform: scale(0.96); }
+        .card-upload {
+            padding: 28px 24px;
             text-align: center;
-            transition: 0.2s;
-            margin-top: 8px;
         }
-        .upload-area.dragover { background: #eaf5ff; border-color: #007aff; }
-        .upload-btn { display: inline-block; background: #007aff; color: white; padding: 12px 32px; border-radius: 40px; font-weight: 600; cursor: pointer; border: none; font-size: 17px; margin-top: 10px; }
-        .upload-btn:hover { background: #0066d9; }
-        #fileInput { display: none; }
-        .file-list { margin-top: 16px; }
+        .card-upload h2 {
+            font-size: 20px;
+            font-weight: 700;
+            letter-spacing: -0.01em;
+        }
+        .card-upload .sub {
+            margin-top: 6px;
+            font-size: 14px;
+            color: var(--text-dim);
+        }
+        .dropzone {
+            margin-top: 18px;
+            padding: 38px 18px;
+            border-radius: 22px;
+            border: 1.5px dashed rgba(255,255,255,0.22);
+            background: rgba(255,255,255,0.04);
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        .dropzone .big {
+            font-size: 16px;
+            font-weight: 700;
+            margin-bottom: 10px;
+            color: var(--text-dim);
+            letter-spacing: 0.08em;
+            transition: transform 0.3s ease;
+        }
+        .dropzone p { font-size: 15px; font-weight: 600; }
+        .dropzone .hint { font-size: 13px; color: var(--text-faint); margin-top: 6px; }
+        .dropzone.dragover {
+            border-color: var(--accent);
+            background: rgba(10,132,255,0.1);
+            box-shadow: 0 0 0 4px rgba(10,132,255,0.15), inset 0 0 30px rgba(10,132,255,0.06);
+        }
+        .dropzone.dragover .big { transform: translateY(-6px) scale(1.15); }
+        .dropzone:hover { border-color: rgba(255,255,255,0.4); }
+        #uploadProgress {
+            margin-top: 16px;
+            display: none;
+        }
+        #uploadProgress .track {
+            width: 100%;
+            background: rgba(255,255,255,0.08);
+            border-radius: 8px;
+            overflow: hidden;
+            height: 8px;
+        }
+        #uploadProgress .bar {
+            width: 0%;
+            height: 100%;
+            background: var(--accent);
+            border-radius: 8px;
+            transition: width 0.3s;
+        }
+        #uploadProgress .status-text {
+            display: block;
+            margin-top: 6px;
+            font-size: 14px;
+            color: var(--text-dim);
+        }
+        .card-files { padding: 22px; }
+        .card-files .head-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+        }
+        .card-files h2 { font-size: 18px; font-weight: 700; }
+        .count-pill {
+            font-size: 12px;
+            color: var(--text-dim);
+            padding: 5px 12px;
+            border-radius: 999px;
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
         .file-item {
             display: flex;
             align-items: center;
-            justify-content: space-between;
-            padding: 12px 14px;
-            background: #f8f9fc;
-            border-radius: 14px;
-            margin-bottom: 8px;
-            transition: 0.1s;
-            border: 1px solid transparent;
+            gap: 14px;
+            padding: 13px 14px;
+            border-radius: 18px;
+            margin-bottom: 10px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.08);
+            transition: all 0.25s ease;
         }
-        .file-item:hover { background: #eef2f7; border-color: #dce1e9; }
-        .file-name { font-weight: 500; flex: 1; word-break: break-all; margin-right: 12px; }
-        .file-size { color: #6b7280; font-size: 14px; margin-right: 12px; white-space: nowrap; }
-        .file-download { background: white; border: 1px solid #d0d5dd; padding: 6px 16px; border-radius: 30px; font-size: 14px; font-weight: 500; text-decoration: none; color: #1c1e24; white-space: nowrap; }
-        .file-download:hover { background: #007aff; color: white; border-color: #007aff; }
-        .empty-msg { color: #8e95a3; text-align: center; padding: 30px 0 10px 0; font-size: 16px; }
-        .footer { font-size: 13px; color: #8e95a3; text-align: center; margin-top: 30px; }
-        #uploadProgress { margin-top: 10px; font-weight: 500; color: #007aff; display: none; }
-        #uploadProgress .track { width: 100%; background: #e9ecf0; border-radius: 8px; overflow: hidden; height: 8px; }
-        #uploadProgress .bar { width: 0%; height: 100%; background: #007aff; border-radius: 8px; transition: width 0.3s; }
-        #uploadProgress .status-text { display: block; margin-top: 4px; font-size: 14px; }
+        .file-item:last-child { margin-bottom: 0; }
+        .file-item:hover {
+            background: rgba(255,255,255,0.09);
+            border-color: rgba(255,255,255,0.18);
+            transform: translateX(3px);
+        }
+        .file-icon {
+            width: 42px; height: 42px;
+            flex-shrink: 0;
+            display: grid;
+            place-items: center;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 700;
+            color: #fff;
+            background: linear-gradient(135deg, rgba(10,132,255,0.22), rgba(94,92,230,0.22));
+            border: 1px solid rgba(255,255,255,0.14);
+        }
+        .file-meta { flex: 1; min-width: 0; }
+        .file-name {
+            font-size: 15px;
+            font-weight: 600;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .file-size { font-size: 12px; color: var(--text-faint); margin-top: 3px; }
+        .file-dl {
+            flex-shrink: 0;
+            text-decoration: none;
+            color: var(--text);
+            font-size: 13px;
+            font-weight: 600;
+            padding: 9px 16px;
+            border-radius: 12px;
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.14);
+            transition: all 0.25s ease;
+        }
+        .file-dl:hover {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: #fff;
+            box-shadow: 0 4px 18px rgba(10,132,255,0.45);
+        }
+        .empty {
+            text-align: center;
+            padding: 38px 0 30px;
+            color: var(--text-faint);
+            font-size: 14px;
+        }
+        .empty .big { font-size: 16px; font-weight: 700; display: block; margin-bottom: 10px; opacity: 0.7; }
+        footer {
+            text-align: center;
+            font-size: 12px;
+            color: var(--text-faint);
+            padding: 6px 0 10px;
+            letter-spacing: 0.02em;
+        }
+        @media (max-width: 480px) {
+            body { padding: 18px 10px; }
+            .card-addr { padding: 16px; }
+            .addr-text { font-size: 14px; }
+            .brand h1 { font-size: 20px; }
+        }
     </style>
 </head>
 <body>
-    <div class="card">
-        <h1>📤 局域传 <small>文件枢纽</small></h1>
-        <div class="addr-box">
-            <span>🔗 \(ip):\(port)</span>
-            <span class="badge">● 在线</span>
-        </div>
-    </div>
 
-    <div class="card" id="uploadCard">
-        <h3 style="margin-bottom: 6px;">📥 上传到手机</h3>
-        <p style="color:#6b7280; font-size:15px; margin-bottom:12px;">选择文件，立即保存到 iPhone 本地</p>
-        <div class="upload-area" id="dropZone">
-            <div style="font-size:44px; margin-bottom:8px;">📁</div>
-            <p style="margin-bottom:4px; font-weight:500;">点击选择 或 拖拽文件至此</p>
-            <p style="font-size:14px; color:#8e95a3; margin-bottom:12px;">支持多文件同时上传</p>
-            <label class="upload-btn" for="fileInput">📤 选择文件</label>
-            <input type="file" id="fileInput" multiple>
+<div class="bg">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+</div>
+<div class="grain"></div>
+
+<div class="container">
+
+    <header>
+        <div class="brand">
+            <div class="brand-icon">传</div>
+            <div>
+                <h1>局域传</h1>
+                <p>文件枢纽</p>
+            </div>
         </div>
+        <span class="badge"><span class="dot"></span>在线</span>
+    </header>
+
+    <section class="glass card-addr">
+        <div class="addr-left">
+            <span class="glyph">链接</span>
+            <div>
+                <div class="addr-label">局域网地址</div>
+                <div class="addr-text" id="addrText">\(ip):\(port)</div>
+            </div>
+        </div>
+        <button class="copy-btn" id="copyBtn">复制</button>
+    </section>
+
+    <section class="glass card-upload">
+        <h2>上传到手机</h2>
+        <p class="sub">选择文件，立即保存到 iPhone 本地</p>
+        <div class="dropzone" id="dropZone">
+            <div class="big">文件夹</div>
+            <p>点击选择 或 拖拽文件至此</p>
+            <div class="hint">支持多文件同时上传</div>
+        </div>
+        <input type="file" id="fileInput" multiple style="display:none">
         <div id="uploadProgress">
             <div class="track"><div class="bar" id="progressBar"></div></div>
             <span class="status-text" id="progressText">0%</span>
         </div>
-    </div>
+    </section>
 
-    <div class="card" id="listCard">
-        <h3 style="margin-bottom: 6px;">📂 手机内文件</h3>
-        <p style="color:#6b7280; font-size:15px; margin-bottom:12px;">点击右侧「下载」即可保存到您的其他设备</p>
-        <div id="fileListContainer">
-            <div class="empty-msg">⏳ 加载中...</div>
+    <section class="glass card-files">
+        <div class="head-row">
+            <h2>最近文件</h2>
+            <span class="count-pill" id="countPill">0 个文件</span>
         </div>
-    </div>
-    <div class="footer">局域传 · 仅限同一局域网 · 传输不上传至任何云端</div>
+        <div id="fileList"></div>
+    </section>
 
-    <script>
-        const fileInput = document.getElementById('fileInput');
-        const dropZone = document.getElementById('dropZone');
-        const fileListContainer = document.getElementById('fileListContainer');
-        const progressContainer = document.getElementById('uploadProgress');
-        const progressBar = document.getElementById('progressBar');
-        const progressText = document.getElementById('progressText');
+    <footer>局域传 · 点对点局域网传输 · 数据不经过云端</footer>
+</div>
 
-        function loadFileList() {
-            fetch('/api/files')
-                .then(res => res.json())
-                .then(files => {
-                    if (files.length === 0) {
-                        fileListContainer.innerHTML = '<div class="empty-msg">📭 手机里暂无文件，上传一个吧</div>';
-                        return;
-                    }
-                    let html = '<div class="file-list">';
-                    files.forEach(f => {
-                        const sizeStr = f.size > 1024*1024 ? (f.size/1024/1024).toFixed(1) + ' MB' : (f.size/1024).toFixed(1) + ' KB';
-                        html += `
-                            <div class="file-item">
-                                <span class="file-name">📄 ${escapeHtml(f.name)}</span>
-                                <span class="file-size">${sizeStr}</span>
-                                <a href="${f.url}" class="file-download" download>⬇️ 下载</a>
-                            </div>
-                        `;
-                    });
-                    html += '</div>';
-                    fileListContainer.innerHTML = html;
-                })
-                .catch(() => { fileListContainer.innerHTML = '<div class="empty-msg">⚠️ 加载失败，请刷新</div>'; });
-        }
+<script>
+    var fileInput = document.getElementById('fileInput');
+    var dropZone = document.getElementById('dropZone');
+    var fileList = document.getElementById('fileList');
+    var countPill = document.getElementById('countPill');
+    var progressContainer = document.getElementById('uploadProgress');
+    var progressBar = document.getElementById('progressBar');
+    var progressText = document.getElementById('progressText');
 
-        function escapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        }
+    function formatSize(bytes) {
+        if (bytes >= 1073741824) return (bytes / 1073741824).toFixed(1) + ' GB';
+        if (bytes >= 1048576) return (bytes / 1048576).toFixed(1) + ' MB';
+        if (bytes >= 1024) return (bytes / 1024).toFixed(0) + ' KB';
+        return bytes + ' B';
+    }
 
-        function uploadFiles(files) {
-            const formData = new FormData();
-            for (let i=0; i<files.length; i++) {
-                formData.append('file', files[i]);
-            }
-            const xhr = new XMLHttpRequest();
+    function fileIconFor(name) {
+        var ext = name.split('.').pop().toLowerCase();
+        if (['mp4','mov','m4v'].indexOf(ext) >= 0) return '影';
+        if (['mp3','wav','aac','flac'].indexOf(ext) >= 0) return '音';
+        if (['jpg','jpeg','png','gif','heic','webp'].indexOf(ext) >= 0) return '图';
+        if (['pdf'].indexOf(ext) >= 0) return '文';
+        if (['zip','rar','7z','tar','gz'].indexOf(ext) >= 0) return '包';
+        return '件';
+    }
 
-            progressContainer.style.display = 'block';
-            progressBar.style.width = '0%';
-            progressBar.style.background = '#007aff';
-            progressText.textContent = '0%';
+    function escapeHtml(text) {
+        var div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
 
-            xhr.open('POST', '/upload', true);
-
-            xhr.upload.onprogress = function(e) {
-                if (e.lengthComputable) {
-                    const percent = Math.round((e.loaded / e.total) * 100);
-                    progressBar.style.width = percent + '%';
-                    progressText.textContent = percent + '%';
+    function loadFileList() {
+        fetch('/api/files')
+            .then(function(res) { return res.json(); })
+            .then(function(files) {
+                countPill.textContent = files.length + ' 个文件';
+                if (files.length === 0) {
+                    fileList.innerHTML = '<div class="empty"><span class="big">空</span>暂无文件，上传一个试试</div>';
+                    return;
                 }
-            };
+                fileList.innerHTML = files.map(function(f) {
+                    return '<div class="file-item">' +
+                        '<div class="file-icon">' + fileIconFor(f.name) + '</div>' +
+                        '<div class="file-meta">' +
+                            '<div class="file-name">' + escapeHtml(f.name) + '</div>' +
+                            '<div class="file-size">' + formatSize(f.size) + '</div>' +
+                        '</div>' +
+                        '<a class="file-dl" href="' + f.url + '">下载</a>' +
+                    '</div>';
+                }).join('');
+            })
+            .catch(function() {
+                fileList.innerHTML = '<div class="empty"><span class="big">错</span>加载失败，请刷新</div>';
+            });
+    }
 
-            xhr.onload = function() {
-                if (xhr.status === 200) {
-                    try {
-                        const response = JSON.parse(xhr.responseText);
-                        if (response.success) {
-                            progressBar.style.background = '#34c759';
-                            progressText.textContent = '✅ 成功上传 ' + response.count + ' 个文件！';
-                        } else {
-                            progressBar.style.background = '#ff3b30';
-                            progressText.textContent = '❌ 上传失败: ' + (response.message || '未知错误');
-                        }
-                    } catch (e) {
+    function uploadFiles(files) {
+        var formData = new FormData();
+        for (var i = 0; i < files.length; i++) {
+            formData.append('file', files[i]);
+        }
+
+        progressContainer.style.display = 'block';
+        progressBar.style.width = '0%';
+        progressBar.style.background = '#0a84ff';
+        progressText.textContent = '0%';
+
+        var xhr = new XMLHttpRequest();
+        xhr.open('POST', '/upload', true);
+
+        xhr.upload.onprogress = function(e) {
+            if (e.lengthComputable) {
+                var pct = Math.round((e.loaded / e.total) * 100);
+                progressBar.style.width = pct + '%';
+                progressText.textContent = pct + '%';
+            }
+        };
+
+        xhr.onload = function() {
+            if (xhr.status === 200) {
+                try {
+                    var response = JSON.parse(xhr.responseText);
+                    if (response.success) {
+                        progressBar.style.background = '#30d158';
+                        progressText.textContent = '成功上传 ' + response.count + ' 个文件';
+                    } else {
                         progressBar.style.background = '#ff3b30';
-                        progressText.textContent = '❌ 上传失败，服务器响应异常';
+                        progressText.textContent = '上传失败: ' + (response.message || '未知错误');
                     }
-                    loadFileList();
-                } else {
+                } catch (e) {
                     progressBar.style.background = '#ff3b30';
-                    progressText.textContent = '❌ 上传失败: ' + xhr.status;
+                    progressText.textContent = '上传失败，服务器响应异常';
                 }
-                setTimeout(() => {
-                    progressContainer.style.display = 'none';
-                    progressBar.style.background = '#007aff';
-                }, 5000);
-            };
-
-            xhr.onerror = function() {
+                loadFileList();
+            } else {
                 progressBar.style.background = '#ff3b30';
-                progressText.textContent = '❌ 上传失败，网络错误';
-                setTimeout(() => {
-                    progressContainer.style.display = 'none';
-                    progressBar.style.background = '#007aff';
-                }, 5000);
-            };
+                progressText.textContent = '上传失败: ' + xhr.status;
+            }
+            setTimeout(function() {
+                progressContainer.style.display = 'none';
+                progressBar.style.background = '#0a84ff';
+            }, 4000);
+        };
 
-            xhr.send(formData);
+        xhr.onerror = function() {
+            progressBar.style.background = '#ff3b30';
+            progressText.textContent = '上传失败，网络错误';
+            setTimeout(function() {
+                progressContainer.style.display = 'none';
+                progressBar.style.background = '#0a84ff';
+            }, 4000);
+        };
+
+        xhr.send(formData);
+    }
+
+    document.getElementById('copyBtn').addEventListener('click', function() {
+        var addr = document.getElementById('addrText').textContent;
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(addr).then(function() {
+                this.textContent = '已复制';
+                var btn = this;
+                setTimeout(function() { btn.textContent = '复制'; }, 1400);
+            }.bind(this));
+        } else {
+            var ta = document.createElement('textarea');
+            ta.value = addr;
+            ta.style.position = 'fixed';
+            ta.style.opacity = '0';
+            document.body.appendChild(ta);
+            ta.select();
+            try { document.execCommand('copy'); } catch (e) {}
+            document.body.removeChild(ta);
+            this.textContent = '已复制';
+            var btn = this;
+            setTimeout(function() { btn.textContent = '复制'; }, 1400);
         }
+    });
 
-        fileInput.addEventListener('change', function(e) {
-            if (this.files.length > 0) {
-                uploadFiles(this.files);
-                this.value = '';
-            }
-        });
+    fileInput.addEventListener('change', function() {
+        if (this.files.length > 0) {
+            uploadFiles(this.files);
+            this.value = '';
+        }
+    });
 
-        dropZone.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            dropZone.classList.add('dragover');
-        });
-        dropZone.addEventListener('dragleave', () => {
-            dropZone.classList.remove('dragover');
-        });
-        dropZone.addEventListener('drop', (e) => {
-            e.preventDefault();
-            dropZone.classList.remove('dragover');
-            if (e.dataTransfer.files.length > 0) {
-                uploadFiles(e.dataTransfer.files);
-            }
-        });
-        dropZone.addEventListener('click', (e) => {
-            if (e.target.tagName !== 'LABEL' && e.target.tagName !== 'INPUT') {
-                fileInput.click();
-            }
-        });
+    dropZone.addEventListener('dragover', function(e) {
+        e.preventDefault();
+        dropZone.classList.add('dragover');
+    });
+    dropZone.addEventListener('dragleave', function() {
+        dropZone.classList.remove('dragover');
+    });
+    dropZone.addEventListener('drop', function(e) {
+        e.preventDefault();
+        dropZone.classList.remove('dragover');
+        if (e.dataTransfer.files.length > 0) {
+            uploadFiles(e.dataTransfer.files);
+        }
+    });
+    dropZone.addEventListener('click', function() {
+        fileInput.click();
+    });
 
-        loadFileList();
-        setInterval(loadFileList, 10000);
-    </script>
+    loadFileList();
+    setInterval(loadFileList, 10000);
+</script>
 </body>
 </html>
 """
