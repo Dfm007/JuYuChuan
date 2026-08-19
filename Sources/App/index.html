@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
     <title>局域传 · 文件传输</title>
+    <link rel="icon" type="image/png" href="/icon.png">
+    <link rel="apple-touch-icon" href="/icon.png">
+    ...
     <style>
         :root {
             --bg: #05070d;
@@ -166,20 +169,22 @@
             align-items: center;
             gap: 12px;
         }
-        .brand-icon {
-            width: 46px; height: 46px;
-            display: grid;
-            place-items: center;
-            border-radius: 14px;
-            font-size: 16px;
-            font-weight: 700;
-            color: #fff;
-            background: linear-gradient(135deg, rgba(10,132,255,0.28), rgba(94,92,230,0.28));
-            border: 1px solid rgba(255,255,255,0.18);
-            box-shadow: inset 0 1px 0 rgba(255,255,255,0.25);
-            -webkit-backdrop-filter: blur(14px);
-            backdrop-filter: blur(14px);
-        }
+		
+		
+
+.brand-icon {
+    width: 46px;
+    height: 46px;
+    flex-shrink: 0;
+    object-fit: cover;
+    overflow: hidden;
+    border-radius: 14px;
+    background: linear-gradient(135deg, rgba(10,132,255,0.28), rgba(94,92,230,0.28));
+    border: 1px solid rgba(255,255,255,0.18);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.25);
+    -webkit-backdrop-filter: blur(14px);
+    backdrop-filter: blur(14px);
+}
         .brand h1 {
             font-size: 24px;
             font-weight: 700;
@@ -442,7 +447,7 @@
 
     <header>
         <div class="brand">
-            <div class="brand-icon">传</div>
+            <img class="brand-icon" src="/icon.png" alt="局域传图标">
             <div>
                 <h1>局域传</h1>
                 <p>文件枢纽</p>
