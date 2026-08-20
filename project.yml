@@ -18,7 +18,6 @@ targets:
     resources:
       - Sources/App/Assets.xcassets
       - Sources/App/index.html
-      - Sources/App/app-icon.png
     type: application
     platform: iOS
     deploymentTarget: "15.0"
