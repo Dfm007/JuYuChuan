@@ -302,15 +302,6 @@ final class WebServerManager: ObservableObject {
             return .ok(.html(html))
         }
 
-        server["/icon.png"] = { [weak self] _ in
-    guard let self = self else { return .internalServerError }
-    guard let url = Bundle.main.url(forResource: "app-icon", withExtension: "png"),
-          let data = try? Data(contentsOf: url) else {
-        return .notFound
-    }
-    return .ok(.data(data, contentType: "image/png"))
-}
-
         server["/download/:path"] = { [weak self] request in
             guard let self = self else { return .internalServerError }
             guard let filename = request.params[":path"]?
