@@ -69,50 +69,14 @@ struct FileDirectoryView: View {
                     .padding(.vertical, 6)
             } else {
                 ForEach(items) { item in
-                    if item.isDirectory {
-                        NavigationLink {
-                            FileDirectoryView(directory: item.url)
-                        } label: {
-                            folderRow(item)
-                        }
-                        .swipeActions {
-                            itemActions(item)
-                        }
-                    } else if textExtensions.contains(fileExtension(item.name)) {
-                        NavigationLink {
-                            TextEditView(fileURL: item.url) {
-                                loadItems()
-                                WebServerManager.shared.updateFileList()
-                            }
-                        } label: {
-                            fileRow(item)
-                        }
-                        .swipeActions {
-                            itemActions(item)
-                        }
-                    } else if archiveExtensions.contains(fileExtension(item.name)) {
-                        Button {
-                            handleArchiveTap(item)
-                        } label: {
-                            fileRow(item)
-                        }
-                        .swipeActions {
-                            itemActions(item)
-                        }
-                    } else {
-                        fileRow(item)
-                            .swipeActions {
-                                itemActions(item)
-                            }
-                    }
+                    row(for: item)
                 }
             }
         }
         .navigationTitle(isRoot ? "文件管理" : directory.lastPathComponent)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
+            ToolbarItem(placement: .navigationBarTrailing) {
                 if isRoot {
                     Button {
                         showSettings = true
@@ -121,7 +85,6 @@ struct FileDirectoryView: View {
                     }
                 }
             }
-        }
         }
         .onAppear {
             loadItems()
@@ -186,6 +149,46 @@ struct FileDirectoryView: View {
     }
 
     // MARK: - 行视图
+    @ViewBuilder
+    private func row(for item: FileItem) -> some View {
+        if item.isDirectory {
+            NavigationLink {
+                FileDirectoryView(directory: item.url)
+            } label: {
+                folderRow(item)
+            }
+            .swipeActions {
+                itemActions(item)
+            }
+        } else if textExtensions.contains(fileExtension(item.name)) {
+            NavigationLink {
+                TextEditView(fileURL: item.url) {
+                    loadItems()
+                    WebServerManager.shared.updateFileList()
+                }
+            } label: {
+                fileRow(item)
+            }
+            .swipeActions {
+                itemActions(item)
+            }
+        } else if archiveExtensions.contains(fileExtension(item.name)) {
+            Button {
+                handleArchiveTap(item)
+            } label: {
+                fileRow(item)
+            }
+            .swipeActions {
+                itemActions(item)
+            }
+        } else {
+            fileRow(item)
+                .swipeActions {
+                    itemActions(item)
+                }
+        }
+    }
+
     private func folderRow(_ item: FileItem) -> some View {
         HStack {
             Image(systemName: "folder.fill")
@@ -291,13 +294,11 @@ struct FileDirectoryView: View {
         let parent = item.url.deletingLastPathComponent()
         let destination = parent.appendingPathComponent(newName)
 
-        // 名称未变化
         if item.url.path == destination.path {
             itemToRename = nil
             return
         }
 
-        // 目标已存在
         if fileManager.fileExists(atPath: destination.path) {
             errorMessage = "已存在同名文件或文件夹"
             showError = true
@@ -316,7 +317,6 @@ struct FileDirectoryView: View {
         itemToRename = nil
     }
 
-    /// 点击压缩包：有密码弹窗，无密码直接解压
     private func handleArchiveTap(_ item: FileItem) {
         if ArchiveManager.shared.isZipEncrypted(at: item.url) {
             archiveToExtract = item
@@ -328,7 +328,6 @@ struct FileDirectoryView: View {
     }
 
     private func extract(_ archive: FileItem, password: String?) {
-        // 解压目标：压缩包所在目录 + 压缩包名（去掉扩展名）
         let baseName = (archive.name as NSString).deletingPathExtension
         let destination = directory.appendingPathComponent(baseName)
 
