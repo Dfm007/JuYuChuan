@@ -31,7 +31,7 @@ struct FileManagerView: View {
 
     var body: some View {
         NavigationView {
-            FileDirectoryView(directory: manager.storagePath, isRoot: true)
+            FileDirectoryView(directory: manager.storagePath, baseRoot: manager.storagePath, isRoot: true)
                 .id(manager.storagePath.path)
         }
     }
