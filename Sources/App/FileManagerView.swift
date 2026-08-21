@@ -32,7 +32,7 @@ struct FileManagerView: View {
     var body: some View {
         NavigationView {
             FileDirectoryView(directory: manager.storagePath, isRoot: true)
-            .id(manager.storagePath.path)
+                .id(manager.storagePath.path)
         }
     }
 }
@@ -56,6 +56,9 @@ struct FileDirectoryView: View {
     @State private var passwordInput = ""
 
     @State private var showSettings = false
+
+    @State private var textPreviewFile: FileItem?
+    @State private var showTextPreview = false
 
     @State private var errorMessage: String?
     @State private var showError = false
@@ -97,6 +100,24 @@ struct FileDirectoryView: View {
         .sheet(isPresented: $showSettings) {
             NavigationView {
                 SettingsView()
+            }
+        }
+        .sheet(isPresented: $showTextPreview) {
+            if let file = textPreviewFile {
+                NavigationView {
+                    TextEditView(fileURL: file.url, allowsEditing: false) {
+                        loadItems()
+                        WebServerManager.shared.updateFileList()
+                    }
+                    .toolbar {
+                        ToolbarItem(placement: .navigationBarLeading) {
+                            Button("关闭") {
+                                textPreviewFile = nil
+                                showTextPreview = false
+                            }
+                        }
+                    }
+                }
             }
         }
         .alert("确认删除", isPresented: $showDeleteAlert) {
@@ -190,6 +211,14 @@ struct FileDirectoryView: View {
             fileRow(item)
                 .swipeActions {
                     itemActions(item)
+                }
+                .contextMenu {
+                    Button {
+                        textPreviewFile = item
+                        showTextPreview = true
+                    } label: {
+                        Label("以文本形式打开", systemImage: "doc.plaintext")
+                    }
                 }
         }
     }
