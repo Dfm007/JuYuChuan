@@ -40,6 +40,7 @@ struct FileManagerView: View {
 // MARK: - 目录内容视图（支持递归进入子目录）
 struct FileDirectoryView: View {
     let directory: URL
+    let baseRoot: URL
     var isRoot: Bool = false
 
     @State private var items: [FileItem] = []
@@ -64,9 +65,35 @@ struct FileDirectoryView: View {
     @State private var showError = false
 
     private let fileManager = FileManager.default
+    
+        private var relativePath: String {
+        let root = baseRoot.standardizedFileURL.path
+        let current = directory.standardizedFileURL.path
+
+        guard current.hasPrefix(root) else {
+            return current
+        }
+
+        let rel = String(current.dropFirst(root.count))
+        return rel.isEmpty ? "/" : rel
+    }
 
     var body: some View {
         List {
+                    List {
+            Section {
+                HStack(spacing: 6) {
+                    Image(systemName: "folder")
+                        .foregroundColor(.blue)
+                    Text(relativePath)
+                        .font(.system(.caption, design: .monospaced))
+                        .foregroundColor(.secondary)
+                        .lineLimit(1)
+                        .truncationMode(.head)
+                }
+            }
+
+            if items.isEmpty {
             if items.isEmpty {
                 Text("此文件夹为空")
                     .foregroundColor(.secondary)
@@ -179,7 +206,7 @@ struct FileDirectoryView: View {
     private func row(for item: FileItem) -> some View {
         if item.isDirectory {
             NavigationLink {
-                FileDirectoryView(directory: item.url)
+                FileDirectoryView(directory: item.url, baseRoot: baseRoot)
             } label: {
                 folderRow(item)
             }
