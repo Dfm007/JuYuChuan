@@ -72,9 +72,11 @@ final class ArchiveManager {
         let success = SSZipArchive.unzipFile(
             atPath: sourceURL.path,
             toDestination: destinationURL.path,
+            preserveAttributes: true,
             overwrite: true,
             password: password,
-            error: &error
+            error: &error,
+            delegate: nil
         )
 
         if !success {
