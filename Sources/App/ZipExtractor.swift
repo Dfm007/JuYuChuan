@@ -87,8 +87,8 @@ final class ZipExtractor {
     }
 
     private func parseCentralDirectory(bytes: [UInt8], eocdOffset: Int) throws -> [ZipEntry] {
-        let entryCount = readUInt16(bytes, eocdOffset + 10)
-        let centralDirectoryOffset = readUInt32(bytes, eocdOffset + 16)
+        let entryCount = Int(readUInt16(bytes, eocdOffset + 10))
+        let centralDirectoryOffset = Int(readUInt32(bytes, eocdOffset + 16))
 
         var entries: [ZipEntry] = []
         var cursor = centralDirectoryOffset
@@ -171,7 +171,7 @@ final class ZipExtractor {
 
         let decodedSize = output.withUnsafeMutableBytes { dst -> Int in
             compressed.withUnsafeBufferPointer { src -> Int in
-                let srcPtr = src.baseAddress!.assumingMemoryBound(to: UInt8.self)
+                let srcPtr = src.baseAddress!
                 let dstPtr = dst.baseAddress!.assumingMemoryBound(to: UInt8.self)
                 return compression_decode_buffer(
                     dstPtr,
