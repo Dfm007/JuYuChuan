@@ -1,6 +1,32 @@
 import SwiftUI
-import Foundation
+import UIKit
 
+// MARK: - 只读大文本视图（UITextView，性能远优于 SwiftUI Text）
+struct TextViewOnly: UIViewRepresentable {
+    let text: String
+
+    func makeUIView(context: Context) -> UITextView {
+        let textView = UITextView()
+        textView.font = UIFont.monospacedSystemFont(ofSize: 17, weight: .regular)
+        textView.backgroundColor = .clear
+        textView.isEditable = false
+        textView.isSelectable = true
+        textView.isScrollEnabled = true
+        textView.textContainerInset = UIEdgeInsets(top: 16, left: 16, bottom: 16, right: 16)
+        textView.autocorrectionType = .no
+        textView.autocapitalizationType = .none
+        textView.spellCheckingType = .no
+        return textView
+    }
+
+    func updateUIView(_ textView: UITextView, context: Context) {
+        if textView.text != text {
+            textView.text = text
+        }
+    }
+}
+
+// MARK: - 文本查看 / 编辑
 struct TextEditView: View {
     let fileURL: URL
     var allowsEditing: Bool = true
@@ -12,7 +38,8 @@ struct TextEditView: View {
     @State private var saveError: String?
     @State private var showSaveError = false
 
-    private let maxTextFileSize = 10 * 1024 * 1024   // 10 MB
+    // 超过此大小不再读取，防止极端大文件拖垮内存
+    private let maxTextFileSize = 50 * 1024 * 1024   // 50 MB
 
     var body: some View {
         Group {
@@ -22,12 +49,7 @@ struct TextEditView: View {
                         .font(.system(.body, design: .monospaced))
                         .padding()
                 } else {
-                    ScrollView {
-                        Text(content)
-                            .font(.system(.body, design: .monospaced))
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding()
-                    }
+                    TextViewOnly(text: content)
                 }
             } else {
                 ProgressView("加载中...")
@@ -51,9 +73,13 @@ struct TextEditView: View {
             }
         }
         .onAppear {
-            // 延后到主线程下一帧，避免 sheet 弹出瞬间视图状态竞争
-            DispatchQueue.main.async {
-                load()
+            // 后台加载，避免主线程卡顿
+            DispatchQueue.global(qos: .userInitiated).async {
+                let loaded = Self.loadContent(from: fileURL, maxSize: maxTextFileSize)
+                DispatchQueue.main.async {
+                    content = loaded
+                    isLoaded = true
+                }
             }
         }
         .alert("保存失败", isPresented: $showSaveError) {
@@ -63,31 +89,24 @@ struct TextEditView: View {
         }
     }
 
-    // MARK: - 加载
-    private func load() {
-        guard let data = try? Data(contentsOf: fileURL) else {
-            content = "无法读取文件。"
-            isLoaded = true
-            return
+    // MARK: - 读取（后台调用）
+    private static func loadContent(from url: URL, maxSize: Int) -> String {
+        guard let data = try? Data(contentsOf: url) else {
+            return "无法读取文件。"
         }
 
         if data.isEmpty {
-            content = "(文件为空)"
-            isLoaded = true
-            return
+            return "(文件为空)"
         }
 
-        if data.count > maxTextFileSize {
-            content = "文件过大，无法以文本形式打开。\n\n文件大小：\(sizeString(data.count))"
-            isLoaded = true
-            return
+        if data.count > maxSize {
+            return "文件过大，无法以文本形式打开。\n\n文件大小：\(sizeString(data.count))"
         }
 
-        content = decode(data)
-        isLoaded = true
+        return decode(data)
     }
 
-    private func sizeString(_ bytes: Int) -> String {
+    private static func sizeString(_ bytes: Int) -> String {
         if bytes >= 1024 * 1024 {
             return String(format: "%.1f MB", Double(bytes) / 1024 / 1024)
         }
@@ -97,24 +116,24 @@ struct TextEditView: View {
         return "\(bytes) B"
     }
 
-    // MARK: - 解码（按概率从高到低尝试）
-    private func decode(_ data: Data) -> String {
+    // MARK: - 解码
+    private static func decode(_ data: Data) -> String {
         // 1. UTF-8
         if let text = String(data: data, encoding: .utf8) {
             return text
         }
 
-        // 2. UTF-16（自动处理 LE / BE 的 BOM）
+        // 2. UTF-16（自动处理带 BOM 的 LE / BE）
         if let text = String(data: data, encoding: .utf16) {
             return text
         }
 
-        // 3. 无 BOM 的 UTF-16 LE（PowerShell 旧版常见）
+        // 3. UTF-16 LE（无 BOM，PowerShell 旧版常见）
         if let text = String(data: data, encoding: .utf16LittleEndian) {
             return text
         }
 
-        // 4. 无 BOM 的 UTF-16 BE
+        // 4. UTF-16 BE（无 BOM）
         if let text = String(data: data, encoding: .utf16BigEndian) {
             return text
         }
@@ -129,26 +148,8 @@ struct TextEditView: View {
             return text
         }
 
-        // 6. 都失败，判断是否二进制
-        if looksLikeBinary(data) {
-            return "此文件不是文本文件，无法显示内容。"
-        }
-
+        // 6. 二进制兜底
         return "无法识别此文件的文本编码。"
-    }
-
-    /// 检测二进制：前 8000 字节中 NUL 字节占比过高
-    private func looksLikeBinary(_ data: Data) -> Bool {
-        let sampleCount = min(data.count, 8000)
-        guard sampleCount > 0 else { return false }
-
-        var nullCount = 0
-        for i in 0..<sampleCount {
-            if data[i] == 0 {
-                nullCount += 1
-            }
-        }
-        return Double(nullCount) / Double(sampleCount) > 0.05
     }
 
     // MARK: - 保存
