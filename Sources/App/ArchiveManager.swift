@@ -33,8 +33,6 @@ final class ArchiveManager {
         guard let data = try? Data(contentsOf: url) else { return false }
         let bytes = [UInt8](data)
         var i = 0
-        // central directory file header 签名：0x02014b50
-        // 小端存储为：50 4B 01 02
         while i <= bytes.count - 4 {
             if bytes[i] == 0x50,
                bytes[i + 1] == 0x4B,
@@ -43,7 +41,6 @@ final class ArchiveManager {
                 let flagIndex = i + 8
                 if flagIndex + 1 < bytes.count {
                     let flag = UInt16(bytes[flagIndex]) | (UInt16(bytes[flagIndex + 1]) << 8)
-                    // bit 0 为加密标志
                     if flag & 0x0001 != 0 {
                         return true
                     }
@@ -66,6 +63,16 @@ final class ArchiveManager {
     }
 
     private func extractZip(at sourceURL: URL, to destinationURL: URL, password: String?) throws {
+        // 有密码 → SSZipArchive（支持 AES / ZipCrypto，但中文文件名可能乱码）
+        // 无密码 → ZipExtractor（纯 Swift，GBK 文件名自动识别）
+        if password != nil || isZipEncrypted(at: sourceURL) {
+            try extractWithSSZipArchive(sourceURL, destinationURL, password)
+        } else {
+            try ZipExtractor().extract(zipURL: sourceURL, to: destinationURL)
+        }
+    }
+
+    private func extractWithSSZipArchive(_ sourceURL: URL, _ destinationURL: URL, _ password: String?) throws {
         try fileManager.createDirectory(at: destinationURL, withIntermediateDirectories: true, attributes: nil)
 
         var error: NSError?
