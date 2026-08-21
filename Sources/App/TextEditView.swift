@@ -3,23 +3,28 @@ import Foundation
 
 struct TextEditView: View {
     let fileURL: URL
+    var allowsEditing: Bool = true
     var onSave: (() -> Void)?
 
     @State private var content = ""
     @State private var isLoaded = false
-    @State private var isDirty = false
+    @State private var isEditing = false
     @State private var saveError: String?
     @State private var showSaveError = false
-
-    @Environment(\.dismiss) var dismiss
 
     var body: some View {
         Group {
             if isLoaded {
-                TextEditor(text: $content)
-                    .onChange(of: content) { _ in
-                        isDirty = true
+                if isEditing {
+                    TextEditor(text: $content)
+                } else {
+                    ScrollView {
+                        Text(content)
+                            .font(.system(.body, design: .monospaced))
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding()
                     }
+                }
             } else {
                 ProgressView("加载中...")
             }
@@ -27,11 +32,18 @@ struct TextEditView: View {
         .navigationTitle(fileURL.lastPathComponent)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button("保存") {
-                    save()
+            ToolbarItem(placement: .navigationBarTrailing) {
+                if allowsEditing {
+                    if isEditing {
+                        Button("保存") {
+                            save()
+                        }
+                    } else {
+                        Button("编辑") {
+                            isEditing = true
+                        }
+                    }
                 }
-                .disabled(!isDirty)
             }
         }
         .onAppear(perform: load)
@@ -52,11 +64,9 @@ struct TextEditView: View {
     }
 
     private func decode(_ data: Data) -> String {
-        // 先尝试 UTF-8
         if let text = String(data: data, encoding: .utf8) {
             return text
         }
-        // 再尝试 GB18030（兼容 GBK / GB2312）
         let gbEncoding = String.Encoding(
             rawValue: CFStringConvertEncodingToNSStringEncoding(
                 CFStringEncoding(CFStringEncodings.GB_18030_2000.rawValue)
@@ -65,16 +75,14 @@ struct TextEditView: View {
         if let text = String(data: data, encoding: gbEncoding) {
             return text
         }
-        // 兜底：有损显示
         return String(decoding: data, as: UTF8.self)
     }
 
     private func save() {
         do {
             try content.write(to: fileURL, atomically: true, encoding: .utf8)
-            isDirty = false
+            isEditing = false
             onSave?()
-            dismiss()
         } catch {
             saveError = error.localizedDescription
             showSaveError = true
