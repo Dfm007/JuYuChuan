@@ -111,8 +111,9 @@ struct FileDirectoryView: View {
         .navigationTitle(isRoot ? "文件管理" : directory.lastPathComponent)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            if isRoot {
-                ToolbarItem(placement: .topBarTrailing) {
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                if isRoot {
                     Button {
                         showSettings = true
                     } label: {
@@ -120,6 +121,7 @@ struct FileDirectoryView: View {
                     }
                 }
             }
+        }
         }
         .onAppear {
             loadItems()
