@@ -9,7 +9,7 @@ jobs:
   build:
     runs-on: macos-15
     env:
-      HOMEBREW_NO_AUTO_UPDATE: 1   # 关键：禁止 brew 自动更新，省 1-3 分钟
+      HOMEBREW_NO_AUTO_UPDATE: 1
     steps:
       - name: 拉取代码
         uses: actions/checkout@v4
@@ -20,12 +20,19 @@ jobs:
       - name: 生成 Xcode 项目
         run: xcodegen generate
 
-      # 缓存 SPM 依赖，避免每次重新 checkout / 编译 Swift 包
       - name: 缓存 Swift Package 依赖
         uses: actions/cache@v4
         with:
           path: build/SourcePackages
           key: spm-${{ runner.os }}-${{ hashFiles('project.yml') }}
+
+      - name: 缓存构建产物
+        uses: actions/cache@v4
+        with:
+          path: build/Build
+          key: build-${{ runner.os }}-${{ hashFiles('Sources/**/*.swift', 'project.yml') }}
+          restore-keys: |
+            build-${{ runner.os }}-
 
       - name: 解析 Swift 包依赖
         run: xcodebuild -project 局域传.xcodeproj -scheme 局域传 -destination 'generic/platform=iOS' -resolvePackageDependencies
