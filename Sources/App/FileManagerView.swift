@@ -90,6 +90,10 @@ struct FileDirectoryView: View {
         .onAppear {
             loadItems()
         }
+        .refreshable {
+            loadItems()
+            WebServerManager.shared.updateFileList()
+        }
         .sheet(isPresented: $showSettings) {
             NavigationView {
                 SettingsView()
