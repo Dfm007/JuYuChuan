@@ -5,34 +5,34 @@ import UIKit
 struct FolderPicker: UIViewControllerRepresentable {
     @Binding var isPresented: Bool
     var onPick: (URL) -> Void
-    
+
     func makeUIViewController(context: Context) -> UIDocumentPickerViewController {
         let picker = UIDocumentPickerViewController(forOpeningContentTypes: [.folder])
         picker.delegate = context.coordinator
         picker.allowsMultipleSelection = false
         return picker
     }
-    
+
     func updateUIViewController(_ uiViewController: UIDocumentPickerViewController, context: Context) {}
-    
+
     func makeCoordinator() -> Coordinator {
         Coordinator(parent: self)
     }
-    
+
     class Coordinator: NSObject, UIDocumentPickerDelegate {
         var parent: FolderPicker
-        
+
         init(parent: FolderPicker) {
             self.parent = parent
         }
-        
+
         func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
             if let url = urls.first {
                 parent.onPick(url)
             }
             parent.isPresented = false
         }
-        
+
         func documentPickerWasCancelled(_ controller: UIDocumentPickerViewController) {
             parent.isPresented = false
         }
@@ -43,19 +43,19 @@ struct FolderPicker: UIViewControllerRepresentable {
 struct DocumentPicker: UIViewControllerRepresentable {
     let fileURL: URL
     var onDismiss: (() -> Void)?
-    
+
     func makeUIViewController(context: Context) -> UIDocumentPickerViewController {
         let picker = UIDocumentPickerViewController(forExporting: [fileURL], asCopy: true)
         picker.delegate = context.coordinator
         return picker
     }
-    
+
     func updateUIViewController(_ uiViewController: UIDocumentPickerViewController, context: Context) {}
-    
+
     func makeCoordinator() -> Coordinator {
         Coordinator(onDismiss: onDismiss)
     }
-    
+
     class Coordinator: NSObject, UIDocumentPickerDelegate {
         var onDismiss: (() -> Void)?
         init(onDismiss: (() -> Void)?) {
@@ -76,7 +76,7 @@ struct SettingsView: View {
     @State private var showFolderPicker = false
     @State private var showResetAlert = false
     @Environment(\.dismiss) var dismiss
-    
+
     var body: some View {
         List {
             Section {
@@ -110,17 +110,17 @@ struct SettingsView: View {
                             .cornerRadius(4)
                     }
                 }
-                
-             HStack {
+
+                HStack {
                     Button("恢复默认") {
                         showResetAlert = true
                     }
                     .buttonStyle(.bordered)
                     .foregroundColor(.red)
                     .disabled(!manager.isUsingCustomPath)
-                    
+
                     Spacer()
-                    
+
                     Button("选择自定义目录") {
                         showFolderPicker = true
                     }
@@ -131,7 +131,7 @@ struct SettingsView: View {
             } footer: {
                 Text("上传的文件将保存在所选目录中。选择自定义目录后，App 重启后仍会记住该位置。")
             }
-            
+
             Section {
                 HStack {
                     Text("版本")
@@ -178,15 +178,9 @@ struct SettingsView: View {
 struct ContentView: View {
     @StateObject private var manager = WebServerManager.shared
     @State private var inputPort: String = "8080"
-    @State private var showDocumentPicker = false
-    @State private var selectedFileURL: URL?
     @State private var showSettings = false
     @State private var showAllLogs = false
-    
-    // ✅ 修复：以下三个状态变量分别独立一行
-    @State private var fileToDelete: FileInfo?
-    @State private var showDeleteAlert = false
-    
+
     var body: some View {
         NavigationView {
             List {
@@ -202,7 +196,7 @@ struct ContentView: View {
                             .font(.system(.body, design: .monospaced))
                             .foregroundColor(.secondary)
                     }
-                    
+
                     HStack {
                         Text("端口")
                         Spacer()
@@ -220,7 +214,7 @@ struct ContentView: View {
                 } header: {
                     Text("服务信息")
                 }
-                
+
                 // 控制按钮
                 Section {
                     if manager.isRunning {
@@ -254,61 +248,7 @@ struct ContentView: View {
                         .disabled(manager.isRunning)
                     }
                 }
-                
-                // 文件列表（含删除按钮）
-                Section {
-                    if manager.files.isEmpty {
-                        Text("暂无文件")
-                            .foregroundColor(.secondary)
-                            .padding(.vertical, 4)
-                    } else {
-                        ForEach(manager.files) { file in
-                            HStack {
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(file.name)
-                                        .font(.headline)
-                                        .lineLimit(1)
-                                    Text(file.sizeString)
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
-                                }
-                                Spacer()
-                                HStack(spacing: 8) {
-                                    Button("导出") {
-                                        selectedFileURL = file.url
-                                        showDocumentPicker = true
-                                    }
-                                    .buttonStyle(.bordered)
-                                    .font(.caption)
-                                    
-                                    Button {
-                                        fileToDelete = file
-                                        showDeleteAlert = true
-                                    } label: {
-                                        Image(systemName: "trash")
-                                            .foregroundColor(.red)
-                                            .font(.caption)
-                                    }
-                                    .buttonStyle(.borderless)
-                                }
-                            }
-                            .padding(.vertical, 2)
-                        }
-                    }
-                } header: {
-                    HStack {
-                        Text("已上传的文件 (\(manager.files.count))")
-                        Spacer()
-                        Button(action: {
-                            manager.updateFileList()
-                        }) {
-                            Image(systemName: "arrow.clockwise")
-                                .font(.caption)
-                        }
-                        .buttonStyle(.borderless)
-                    }
-                }
-                
+
                 // 运行日志
                 Section {
                     if manager.logMessages.isEmpty {
@@ -320,7 +260,7 @@ struct ContentView: View {
                                 .font(.system(.caption, design: .monospaced))
                                 .padding(.vertical, 2)
                         }
-                        
+
                         if showAllLogs {
                             ForEach(manager.logMessages.dropLast(), id: \.self) { msg in
                                 Text(msg)
@@ -328,7 +268,7 @@ struct ContentView: View {
                                     .padding(.vertical, 2)
                             }
                         }
-                        
+
                         if manager.logMessages.count > 1 {
                             Button(action: {
                                 withAnimation {
@@ -350,17 +290,16 @@ struct ContentView: View {
                 } header: {
                     Text("运行日志")
                 }
-                
+
                 // 使用指南
                 Section {
                     VStack(alignment: .leading, spacing: 6) {
-                        Text("📱 使用指南")
+                        Text("使用指南")
                             .font(.headline)
                         Text("1. 点击「启动服务」，确保手机和电脑/其他设备连在同一个WiFi")
                         Text("2. 在其他设备的浏览器输入上方显示的地址（例如 192.168.0.100:8080）")
                         Text("3. 网页内可上传文件到手机，或点击下载手机里的文件")
-                        Text("4. 手机内文件可通过本页面的「导出」按钮保存到其他位置")
-                        Text("5. 点击垃圾桶图标可删除文件")
+                        Text("4. 手机内文件可通过文件管理页查看、编辑、重命名或删除")
                     }
                     .font(.footnote)
                     .foregroundColor(.secondary)
@@ -382,33 +321,9 @@ struct ContentView: View {
                 manager.currentIP = WebServerManager.getIPAddress()
                 manager.updateFileList()
             }
-            .sheet(isPresented: $showDocumentPicker) {
-                if let url = selectedFileURL {
-                    DocumentPicker(fileURL: url) {
-                        selectedFileURL = nil
-                    }
-                }
-            }
             .sheet(isPresented: $showSettings) {
                 NavigationView {
                     SettingsView()
-                }
-            }
-            .alert("确认删除", isPresented: $showDeleteAlert) {
-                Button("取消", role: .cancel) {
-                    fileToDelete = nil
-                }
-                Button("删除", role: .destructive) {
-                    if let file = fileToDelete {
-                        manager.deleteFile(file)
-                        fileToDelete = nil
-                    }
-                }
-            } message: {
-                if let file = fileToDelete {
-                    Text("确定要删除文件 \"\(file.name)\" 吗？此操作不可撤销。")
-                } else {
-                    Text("确定要删除此文件吗？")
                 }
             }
         }
