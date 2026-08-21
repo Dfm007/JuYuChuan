@@ -84,9 +84,7 @@ struct FileDirectoryView: View {
                         }
                     } else if archiveExtensions.contains(fileExtension(item.name)) {
                         Button {
-                            archiveToExtract = item
-                            passwordInput = ""
-                            showPasswordPrompt = true
+                            handleArchiveTap(item)
                         } label: {
                             fileRow(item)
                         }
@@ -123,10 +121,12 @@ struct FileDirectoryView: View {
             }
         }
         .alert("解压密码", isPresented: $showPasswordPrompt) {
-            TextField("留空表示无密码", text: $passwordInput)
+            TextField("请输入密码", text: $passwordInput)
                 .disableAutocorrection(true)
             Button("解压") {
-                beginExtract()
+                if let archive = archiveToExtract {
+                    extract(archive, password: passwordInput.isEmpty ? nil : passwordInput)
+                }
             }
             Button("取消", role: .cancel) { }
         } message: {
@@ -219,9 +219,18 @@ struct FileDirectoryView: View {
         }
     }
 
-    private func beginExtract() {
-        guard let archive = archiveToExtract else { return }
+    /// 点击压缩包：有密码弹窗，无密码直接解压
+    private func handleArchiveTap(_ item: FileItem) {
+        if ArchiveManager.shared.isZipEncrypted(at: item.url) {
+            archiveToExtract = item
+            passwordInput = ""
+            showPasswordPrompt = true
+        } else {
+            extract(item, password: nil)
+        }
+    }
 
+    private func extract(_ archive: FileItem, password: String?) {
         // 解压目标：压缩包所在目录 + 压缩包名（去掉扩展名）
         let baseName = (archive.name as NSString).deletingPathExtension
         let destination = directory.appendingPathComponent(baseName)
@@ -230,7 +239,7 @@ struct FileDirectoryView: View {
             try ArchiveManager.shared.extractArchive(
                 at: archive.url,
                 to: destination,
-                password: passwordInput.isEmpty ? nil : passwordInput
+                password: password
             )
             loadItems()
             WebServerManager.shared.updateFileList()
