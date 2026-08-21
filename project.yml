@@ -1,4 +1,4 @@
-﻿name: 局域传
+name: 局域传
 options:
   bundleIdPrefix: com.example
   deploymentTarget:
@@ -12,6 +12,9 @@ packages:
   Swifter:
     url: https://github.com/httpswift/swifter
     from: 1.5.0
+  ZipArchive:
+    url: https://github.com/ZipArchive/ZipArchive.git
+    from: 2.5.5
 
 targets:
   局域传:
@@ -25,6 +28,7 @@ targets:
       - Sources/App
     dependencies:
       - package: Swifter
+      - package: ZipArchive
     settings:
       PRODUCT_BUNDLE_IDENTIFIER: com.example.juyuchuan
       INFOPLIST_KEY_UIBackgroundModes: ["audio"]
