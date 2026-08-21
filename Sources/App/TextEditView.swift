@@ -18,15 +18,13 @@ struct TextEditView: View {
                 if isEditing {
                     TextEditor(text: $content)
                         .font(.system(.body, design: .monospaced))
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 8)
+                        .padding()
                 } else {
                     ScrollView {
                         Text(content)
                             .font(.system(.body, design: .monospaced))
                             .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 8)
+                            .padding()
                     }
                 }
             } else {
