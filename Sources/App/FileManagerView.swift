@@ -31,7 +31,7 @@ struct FileManagerView: View {
 
     var body: some View {
         NavigationView {
-            FileDirectoryView(directory: manager.storagePath)
+            FileDirectoryView(directory: manager.storagePath, isRoot: true)
         }
     }
 }
@@ -39,14 +39,22 @@ struct FileManagerView: View {
 // MARK: - 目录内容视图（支持递归进入子目录）
 struct FileDirectoryView: View {
     let directory: URL
+    var isRoot: Bool = false
 
     @State private var items: [FileItem] = []
+
     @State private var fileToDelete: FileItem?
     @State private var showDeleteAlert = false
+
+    @State private var itemToRename: FileItem?
+    @State private var renameText = ""
+    @State private var showRenameAlert = false
 
     @State private var archiveToExtract: FileItem?
     @State private var showPasswordPrompt = false
     @State private var passwordInput = ""
+
+    @State private var showSettings = false
 
     @State private var errorMessage: String?
     @State private var showError = false
@@ -68,7 +76,7 @@ struct FileDirectoryView: View {
                             folderRow(item)
                         }
                         .swipeActions {
-                            deleteButton(item)
+                            itemActions(item)
                         }
                     } else if textExtensions.contains(fileExtension(item.name)) {
                         NavigationLink {
@@ -80,7 +88,7 @@ struct FileDirectoryView: View {
                             fileRow(item)
                         }
                         .swipeActions {
-                            deleteButton(item)
+                            itemActions(item)
                         }
                     } else if archiveExtensions.contains(fileExtension(item.name)) {
                         Button {
@@ -89,21 +97,37 @@ struct FileDirectoryView: View {
                             fileRow(item)
                         }
                         .swipeActions {
-                            deleteButton(item)
+                            itemActions(item)
                         }
                     } else {
                         fileRow(item)
                             .swipeActions {
-                                deleteButton(item)
+                                itemActions(item)
                             }
                     }
                 }
             }
         }
-        .navigationTitle(directory.lastPathComponent)
+        .navigationTitle(isRoot ? "文件管理" : directory.lastPathComponent)
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            if isRoot {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        showSettings = true
+                    } label: {
+                        Image(systemName: "gear")
+                    }
+                }
+            }
+        }
         .onAppear {
             loadItems()
+        }
+        .sheet(isPresented: $showSettings) {
+            NavigationView {
+                SettingsView()
+            }
         }
         .alert("确认删除", isPresented: $showDeleteAlert) {
             Button("取消", role: .cancel) { fileToDelete = nil }
@@ -118,6 +142,22 @@ struct FileDirectoryView: View {
                 Text("确定要删除 \"\(item.name)\" 吗？此操作不可撤销。")
             } else {
                 Text("确定要删除吗？")
+            }
+        }
+        .alert("重命名", isPresented: $showRenameAlert) {
+            TextField("新名称", text: $renameText)
+                .disableAutocorrection(true)
+            Button("确定") {
+                performRename()
+            }
+            Button("取消", role: .cancel) {
+                itemToRename = nil
+            }
+        } message: {
+            if let item = itemToRename {
+                Text("当前名称：\(item.name)")
+            } else {
+                Text("请输入新名称")
             }
         }
         .alert("解压密码", isPresented: $showPasswordPrompt) {
@@ -167,6 +207,13 @@ struct FileDirectoryView: View {
         }
     }
 
+    // MARK: - 滑动操作
+    @ViewBuilder
+    private func itemActions(_ item: FileItem) -> some View {
+        deleteButton(item)
+        renameButton(item)
+    }
+
     private func deleteButton(_ item: FileItem) -> some View {
         Button(role: .destructive) {
             fileToDelete = item
@@ -174,6 +221,17 @@ struct FileDirectoryView: View {
         } label: {
             Label("删除", systemImage: "trash")
         }
+    }
+
+    private func renameButton(_ item: FileItem) -> some View {
+        Button {
+            itemToRename = item
+            renameText = item.name
+            showRenameAlert = true
+        } label: {
+            Label("重命名", systemImage: "pencil")
+        }
+        .tint(.blue)
     }
 
     // MARK: - 工具方法
@@ -217,6 +275,43 @@ struct FileDirectoryView: View {
             errorMessage = error.localizedDescription
             showError = true
         }
+    }
+
+    private func performRename() {
+        guard let item = itemToRename else { return }
+
+        let newName = renameText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !newName.isEmpty else {
+            itemToRename = nil
+            return
+        }
+
+        let parent = item.url.deletingLastPathComponent()
+        let destination = parent.appendingPathComponent(newName)
+
+        // 名称未变化
+        if item.url.path == destination.path {
+            itemToRename = nil
+            return
+        }
+
+        // 目标已存在
+        if fileManager.fileExists(atPath: destination.path) {
+            errorMessage = "已存在同名文件或文件夹"
+            showError = true
+            itemToRename = nil
+            return
+        }
+
+        do {
+            try fileManager.moveItem(at: item.url, to: destination)
+            loadItems()
+            WebServerManager.shared.updateFileList()
+        } catch {
+            errorMessage = error.localizedDescription
+            showError = true
+        }
+        itemToRename = nil
     }
 
     /// 点击压缩包：有密码弹窗，无密码直接解压
