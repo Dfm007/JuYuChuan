@@ -37,13 +37,11 @@ final class ZipExtractor {
         try fileManager.createDirectory(at: destinationURL, withIntermediateDirectories: true)
 
         for entry in entries {
-            let name = decodeFilename(entry.filenameBytes)
+            let rawName = decodeFilename(entry.filenameBytes)
+            let name = sanitizeFilename(rawName)
             guard !name.isEmpty else { continue }
 
             let destinationPath = destinationURL.appendingPathComponent(name)
-            guard isPathSafe(destinationPath, root: destinationURL) else {
-                throw ZipExtractError.pathTraversal
-            }
 
             if entry.isDirectory {
                 try fileManager.createDirectory(at: destinationPath, withIntermediateDirectories: true)
@@ -96,7 +94,6 @@ final class ZipExtractor {
         for _ in 0..<entryCount {
             guard cursor + 46 <= bytes.count else { break }
 
-            // 检查中央目录文件头签名 0x02014b50 → 50 4B 01 02
             guard bytes[cursor] == 0x50,
                   bytes[cursor + 1] == 0x4B,
                   bytes[cursor + 2] == 0x01,
@@ -212,6 +209,23 @@ final class ZipExtractor {
         return String(decoding: bytes, as: UTF8.self)
     }
 
+    // MARK: - 文件名安全处理
+    private func sanitizeFilename(_ rawName: String) -> String {
+        // Windows 压缩工具常用反斜杠作为路径分隔符
+        let normalized = rawName.replacingOccurrences(of: "\\", with: "/")
+
+        var components: [String] = []
+        for comp in normalized.split(separator: "/", omittingEmptySubsequences: true) {
+            let part = String(comp)
+            if part == ".." || part == "." {
+                continue
+            }
+            components.append(part)
+        }
+
+        return components.joined(separator: "/")
+    }
+
     // MARK: - 二进制读取（小端）
     private func readUInt16(_ bytes: [UInt8], _ offset: Int) -> UInt16 {
         guard offset + 1 < bytes.count else { return 0 }
@@ -224,12 +238,5 @@ final class ZipExtractor {
             | (UInt32(bytes[offset + 1]) << 8)
             | (UInt32(bytes[offset + 2]) << 16)
             | (UInt32(bytes[offset + 3]) << 24)
-    }
-
-    // MARK: - 路径安全
-    private func isPathSafe(_ path: URL, root: URL) -> Bool {
-        let standardizedPath = path.standardizedFileURL
-        let standardizedRoot = root.standardizedFileURL
-        return standardizedPath.path.hasPrefix(standardizedRoot.path)
     }
 }
