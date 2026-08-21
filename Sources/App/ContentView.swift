@@ -142,7 +142,7 @@ struct SettingsView: View {
                 HStack {
                     Text("作者")
                     Spacer()
-                    Text("局域传开发组")
+                    Text("DeepSeek v4 flash")
                         .foregroundColor(.secondary)
                 }
             } header: {
