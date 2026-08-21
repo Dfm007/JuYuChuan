@@ -28,6 +28,32 @@ final class ArchiveManager {
         return ext == "zip"
     }
 
+    /// 判断 zip 是否加密（读取 central directory 的 general purpose bit flag）
+    func isZipEncrypted(at url: URL) -> Bool {
+        guard let data = try? Data(contentsOf: url) else { return false }
+        let bytes = [UInt8](data)
+        var i = 0
+        // central directory file header 签名：0x02014b50
+        // 小端存储为：50 4B 01 02
+        while i <= bytes.count - 4 {
+            if bytes[i] == 0x50,
+               bytes[i + 1] == 0x4B,
+               bytes[i + 2] == 0x01,
+               bytes[i + 3] == 0x02 {
+                let flagIndex = i + 8
+                if flagIndex + 1 < bytes.count {
+                    let flag = UInt16(bytes[flagIndex]) | (UInt16(bytes[flagIndex + 1]) << 8)
+                    // bit 0 为加密标志
+                    if flag & 0x0001 != 0 {
+                        return true
+                    }
+                }
+            }
+            i += 1
+        }
+        return false
+    }
+
     func extractArchive(at sourceURL: URL, to destinationURL: URL, password: String?) throws {
         let ext = (sourceURL.lastPathComponent as NSString).pathExtension.lowercased()
 
