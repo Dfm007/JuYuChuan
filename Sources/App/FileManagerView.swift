@@ -65,8 +65,8 @@ struct FileDirectoryView: View {
     @State private var showError = false
 
     private let fileManager = FileManager.default
-    
-        private var relativePath: String {
+
+    private var relativePath: String {
         let root = baseRoot.standardizedFileURL.path
         let current = directory.standardizedFileURL.path
 
@@ -80,7 +80,6 @@ struct FileDirectoryView: View {
 
     var body: some View {
         List {
-                    List {
             Section {
                 HStack(spacing: 6) {
                     Image(systemName: "folder")
@@ -93,7 +92,6 @@ struct FileDirectoryView: View {
                 }
             }
 
-            if items.isEmpty {
             if items.isEmpty {
                 Text("此文件夹为空")
                     .foregroundColor(.secondary)
