@@ -76,6 +76,7 @@ struct SettingsView: View {
     @State private var showFolderPicker = false
     @State private var showResetAlert = false
     @Environment(\.dismiss) var dismiss
+    @AppStorage("defaultTab") private var defaultTab = "files"
 
     var body: some View {
         List {
@@ -147,6 +148,15 @@ struct SettingsView: View {
                 }
             } header: {
                 Text("关于")
+            }
+
+            Section {
+                Picker("启动页", selection: $defaultTab) {
+                    Text("文件管理").tag("files")
+                    Text("局域传").tag("transfer")
+                }
+            } header: {
+                Text("首页设置")
             }
         }
         .navigationTitle("设置")

@@ -22,17 +22,25 @@ struct 局域传App: App {
 }
 
 struct RootTabView: View {
+    @AppStorage("defaultTab") private var defaultTab = "files"
+    @State private var selection = "files"
+
     var body: some View {
-        TabView {
+        TabView(selection: ) {
             FileManagerView()
                 .tabItem {
                     Label("文件", systemImage: "folder")
                 }
+                .tag("files")
 
             ContentView()
                 .tabItem {
                     Label("传输", systemImage: "arrow.up.arrow.down")
                 }
+                .tag("transfer")
+        }
+        .onAppear {
+            selection = defaultTab
         }
     }
 }
