@@ -26,7 +26,7 @@ struct RootTabView: View {
     @State private var selection = "files"
 
     var body: some View {
-        TabView(selection: ) {
+        TabView(selection: $selection) {
             FileManagerView()
                 .tabItem {
                     Label("文件", systemImage: "folder")
